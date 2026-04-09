@@ -61,7 +61,7 @@ const CustomerForm = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name === 'mobileNumber') {
       const onlyNums = value.replace(/\D/g, '').slice(0, 10);
       setFormData(prev => ({ ...prev, [name]: onlyNums }));
@@ -73,7 +73,7 @@ const CustomerForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Mobile validation cleanup and check
     const cleanMobile = formData.mobileNumber.trim();
     if (cleanMobile.length !== 10) {
@@ -101,14 +101,14 @@ const CustomerForm = () => {
         body: JSON.stringify(formData),
       });
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.error || 'Failed to submit form');
       }
 
       setSuccess(true);
       resetForm();
-      
+
       // Redirect to database after 1.5 seconds to see the success message
       setTimeout(() => {
         setSuccess(false);
@@ -133,7 +133,7 @@ const CustomerForm = () => {
         <span className="h-2 w-2 bg-red-600 rounded-full"></span>
         {error}
       </div>}
-      
+
       {success && <div className="mb-8 bg-[#D15616]/5 text-[#D15616] px-6 py-4 rounded-lg text-sm font-bold border border-[#D15616]/10 flex items-center gap-3">
         <span className="h-2 w-2 bg-[#D15616] rounded-full animate-ping"></span>
         Record saved successfully! Redirecting...
@@ -141,63 +141,64 @@ const CustomerForm = () => {
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <InputField 
-            label="Customer Name" 
-            name="userName" 
-            value={formData.userName} 
-            onChange={handleChange} 
-            required 
-          />
-          <InputField 
-            label="Mobile Number" 
-            name="mobileNumber" 
-            value={formData.mobileNumber} 
-            onChange={handleChange} 
-            maxLength={10} 
-            required 
-          />
-          <InputField 
-            label="Email Address" 
-            name="email" 
-            value={formData.email} 
-            onChange={handleChange} 
-            type="email" 
-          />
-          <InputField 
-            label="Installation Address" 
-            name="address" 
-            value={formData.address} 
-            onChange={handleChange} 
+          <InputField
+            label="Customer Name"
+            name="userName"
+            value={formData.userName}
+            onChange={handleChange}
             required
           />
-          <ProductDropdown 
-            label="Product & Model" 
-            value={formData.productNameAndModel} 
-            onChange={handleChange} 
+          <InputField
+            label="Mobile Number"
+            name="mobileNumber"
+            value={formData.mobileNumber}
+            onChange={handleChange}
+            maxLength={10}
+            required
           />
-          <InputField 
-            label="Card No" 
-            name="cardNumber" 
-            value={formData.cardNumber} 
-            onChange={handleChange} 
+          <InputField
+            label="Email Address"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            type="email"
           />
-          <DateRangePicker 
-            label="Installation Date" 
+          <InputField
+            label="Installation Address"
+            name="address"
+            value={formData.address}
+            onChange={handleChange}
+            required
+          />
+          <ProductDropdown
+            label="Product & Model"
+            value={formData.productNameAndModel}
+            onChange={handleChange}
+          />
+          <InputField
+            label="Card No"
+            name="cardNumber"
+            value={formData.cardNumber}
+            onChange={handleChange}
+            required
+          />
+          <DateRangePicker
+            label="Installation Date"
             isSingle={true}
             startDate={formData.dateOfInstallationOrService}
             onRangeSelect={(start) => {
-              setFormData(prev => ({ 
-                ...prev, 
-                dateOfInstallationOrService: start ? start.toISOString().split('T')[0] : '' 
+              setFormData(prev => ({
+                ...prev,
+                dateOfInstallationOrService: start ? start.toISOString().split('T')[0] : ''
               }));
             }}
           />
-          <InputField 
-            label="Order ID" 
-            name="orderNo" 
-            value={formData.orderNo} 
-            onChange={handleChange} 
-            readOnly 
+          <InputField
+            label="Order ID"
+            name="orderNo"
+            value={formData.orderNo}
+            onChange={handleChange}
+            readOnly
           />
         </div>
 

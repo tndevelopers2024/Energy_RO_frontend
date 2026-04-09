@@ -50,7 +50,7 @@ const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }) => {
   return createPortal(
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-300"
         onClick={onClose}
       ></div>
@@ -83,11 +83,11 @@ const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }) => {
             {/* User Name */}
             <div className="space-y-2">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Full Name</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 required
                 value={formData.userName}
-                onChange={(e) => setFormData({...formData, userName: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
                 className="w-full px-4 py-3 rounded-md border border-gray-200 focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none font-bold text-gray-800 text-sm"
               />
             </div>
@@ -95,29 +95,30 @@ const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }) => {
             {/* Mobile Number */}
             <div className="space-y-2">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Mobile Number</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 required
                 value={formData.mobileNumber}
-                onChange={(e) => setFormData({...formData, mobileNumber: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
                 className="w-full px-4 py-3 rounded-md border border-gray-200 focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none font-bold text-gray-800 text-sm"
               />
             </div>
 
             {/* Product & Model */}
-            <ProductDropdown 
+            <ProductDropdown
               label="Product & Model"
               value={formData.productNameAndModel}
-              onChange={(e) => setFormData({...formData, productNameAndModel: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, productNameAndModel: e.target.value })}
             />
 
             {/* Card Number */}
             <div className="space-y-2">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Card/Serial Number</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
+                required
                 value={formData.cardNumber}
-                onChange={(e) => setFormData({...formData, cardNumber: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, cardNumber: e.target.value })}
                 className="w-full px-4 py-3 rounded-md border border-gray-200 focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none font-bold text-gray-800 text-sm"
               />
             </div>
@@ -125,23 +126,23 @@ const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }) => {
             {/* Email */}
             <div className="space-y-2">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Email Address</label>
-              <input 
-                type="email" 
+              <input
+                type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="w-full px-4 py-3 rounded-md border border-gray-200 focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none font-bold text-gray-800 text-sm"
               />
             </div>
 
             {/* Transaction Date */}
-            <DateRangePicker 
+            <DateRangePicker
               label="Transaction Date"
               isSingle={true}
               startDate={formData.dateOfInstallationOrService}
               onRangeSelect={(start) => {
-                setFormData(prev => ({ 
-                  ...prev, 
-                  dateOfInstallationOrService: start ? start.toISOString().split('T')[0] : '' 
+                setFormData(prev => ({
+                  ...prev,
+                  dateOfInstallationOrService: start ? start.toISOString().split('T')[0] : ''
                 }));
               }}
             />
@@ -149,26 +150,26 @@ const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }) => {
             {/* Address - Full Width */}
             <div className="md:col-span-2 space-y-2">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Mailing Address</label>
-              <textarea 
+              <textarea
                 rows="3"
                 required
                 value={formData.address}
-                onChange={(e) => setFormData({...formData, address: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 className="w-full px-4 py-3 rounded-md border border-gray-200 focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none font-bold text-gray-800 text-sm resize-none"
               ></textarea>
             </div>
           </div>
 
           <div className="mt-10 flex gap-4">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={onClose}
               className="flex-1 px-6 py-4 rounded-md border border-gray-200 text-xs font-black text-gray-500 uppercase tracking-widest hover:bg-gray-50 transition-all cursor-pointer"
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={loading}
               className="flex-1 px-6 py-4 rounded-md bg-[#D15616] text-white text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-[#D15616]/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
             >
