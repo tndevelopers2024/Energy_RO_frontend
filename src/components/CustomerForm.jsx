@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import API_BASE_URL from '../apiConfig';
 import ProductDropdown from './ProductDropdown';
 import DateRangePicker from './DateRangePicker';
 
@@ -95,7 +96,7 @@ const CustomerForm = () => {
     setSuccess(false);
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/customers', {
+      const response = await fetch(`${API_BASE_URL}/customers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import API_BASE_URL from '../apiConfig';
 
 const TrendChart = ({ data, maxCount }) => {
   const [hoveredIdx, setHoveredIdx] = useState(null);
-  
+
   const width = 600;
   const height = 220;
   const padding = 20;
-  
+
   const chartWidth = width - (padding * 2);
   const chartHeight = height - (padding * 2);
 
@@ -45,7 +46,7 @@ const TrendChart = ({ data, maxCount }) => {
 
         {/* Grid Lines */}
         {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
-          <line 
+          <line
             key={i}
             x1={padding}
             y1={height - padding - (p * chartHeight)}
@@ -95,14 +96,13 @@ const TrendChart = ({ data, maxCount }) => {
 
       {/* Unified Tooltip */}
       {hoveredIdx !== null && (
-        <div 
-          style={{ 
+        <div
+          style={{
             left: `${(installPoints[hoveredIdx].x / width) * 100}%`,
             top: `${(Math.min(installPoints[hoveredIdx].y, servicePoints[hoveredIdx].y) / height) * 100}%`
           }}
-          className={`absolute -translate-y-[calc(100%+20px)] bg-white border border-gray-100 shadow-2xl rounded-md p-4 min-w-[160px] pointer-events-none z-20 animate-in fade-in zoom-in duration-200 ${
-            hoveredIdx >= data.length - 2 ? '-translate-x-[90%]' : '-translate-x-1/2'
-          }`}
+          className={`absolute -translate-y-[calc(100%+20px)] bg-white border border-gray-100 shadow-2xl rounded-md p-4 min-w-[160px] pointer-events-none z-20 animate-in fade-in zoom-in duration-200 ${hoveredIdx >= data.length - 2 ? '-translate-x-[90%]' : '-translate-x-1/2'
+            }`}
         >
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 pb-2 border-b border-gray-50">{installPoints[hoveredIdx].name} 2026 Analysis</p>
           <div className="space-y-2">
@@ -139,7 +139,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:5000/api/customers');
+        const res = await fetch(`${API_BASE_URL}/customers`);
         const data = await res.json();
         if (data.success) {
           setCustomers(data.data);
@@ -155,7 +155,7 @@ const Dashboard = () => {
 
   const calculateKPIs = () => {
     const now = new Date();
-    
+
     // Date windows
     const getWindowDate = (days) => {
       const d = new Date();
@@ -169,7 +169,7 @@ const Dashboard = () => {
 
     const totalInstallation = customers.filter(c => c.type === 'Installation').length;
     const acmcCount = customers.filter(c => c.isACMC).length;
-    
+
     // In Warranty = Installation type and Date under 1 year old
     const warrantyCount = customers.filter(c => {
       if (c.type !== 'Installation' || !c.dateOfInstallationOrService) return false;
@@ -193,7 +193,7 @@ const Dashboard = () => {
         const base = new Date(baseDate);
         const months = [4, 8, 12][nextIdx];
         base.setMonth(base.getMonth() + months);
-        
+
         return base <= windowDate && base >= now; // must be in the future but before window
       }).length;
     };
@@ -248,18 +248,18 @@ const Dashboard = () => {
   const maxCount = Math.max(...chartData.map(d => Math.max(d.count, d.serviceCount)), 5);
 
   const StatCard = ({ title, value, sub, themeColor, icon, trendColor = "text-green-500", onClick }) => (
-    <div 
+    <div
       onClick={onClick}
       className={`bg-white p-6 rounded-md border shadow-sm transition-all group overflow-hidden relative ${onClick ? 'cursor-pointer hover:shadow-md hover:border-gray-200 border-gray-100' : 'border-gray-100'}`}
     >
       {/* Decorative circle */}
-      <div 
+      <div
         style={{ backgroundColor: themeColor }}
         className="absolute -right-4 -top-4 h-24 w-24 rounded-full opacity-[0.03] group-hover:scale-110 transition-transform"
       ></div>
-      
+
       <div className="flex justify-between items-start mb-4">
-        <div 
+        <div
           style={{ backgroundColor: themeColor + '15' }} // 15 is ~8% hex opacity
           className="p-3 rounded-md flex items-center justify-center border border-gray-50"
         >
@@ -290,25 +290,25 @@ const Dashboard = () => {
     <div className="space-y-8 animate-in fade-in duration-700 font-['Plus_Jakarta_Sans']">
       {/* Row 1: Core Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard 
-          title="Total Installations" 
-          value={kpis.totalInstallation} 
+        <StatCard
+          title="Total Installations"
+          value={kpis.totalInstallation}
           sub="Cumulative fleet size"
           themeColor="#D15616"
           icon={<svg viewBox="0 0 24 24" width="20" height="20" stroke="#D15616" strokeWidth="3" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>}
           onClick={() => handleCardClick('all')}
         />
-        <StatCard 
-          title="Total In Warranty" 
-          value={kpis.warrantyCount} 
+        <StatCard
+          title="Total In Warranty"
+          value={kpis.warrantyCount}
           sub="Active coverage"
           themeColor="#3b82f6"
           icon={<svg viewBox="0 0 24 24" width="20" height="20" stroke="#3b82f6" strokeWidth="3" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>}
           onClick={() => handleCardClick('warranty')}
         />
-        <StatCard 
-          title="Total ACMC Contracts" 
-          value={kpis.acmcCount} 
+        <StatCard
+          title="Total ACMC Contracts"
+          value={kpis.acmcCount}
           sub="Subscribed users"
           themeColor="#10b981"
           icon={<svg viewBox="0 0 24 24" width="20" height="20" stroke="#10b981" strokeWidth="3" fill="none"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>}
@@ -318,27 +318,27 @@ const Dashboard = () => {
 
       {/* Row 2: Service Forecaster */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard 
-          title="Due in 7 Days" 
-          value={kpis.due7} 
+        <StatCard
+          title="Due in 7 Days"
+          value={kpis.due7}
           sub="Immediate action"
           themeColor="#ef4444"
           trendColor="text-red-500"
           icon={<svg viewBox="0 0 24 24" width="20" height="20" stroke="#ef4444" strokeWidth="3" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>}
           onClick={() => handleCardClick('due7')}
         />
-        <StatCard 
-          title="Due in 14 Days" 
-          value={kpis.due14} 
+        <StatCard
+          title="Due in 14 Days"
+          value={kpis.due14}
           sub="Short-term planning"
           themeColor="#f59e0b"
           trendColor="text-amber-500"
           icon={<svg viewBox="0 0 24 24" width="20" height="20" stroke="#f59e0b" strokeWidth="3" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>}
           onClick={() => handleCardClick('due14')}
         />
-        <StatCard 
-          title="Due in 1 Month" 
-          value={kpis.due30} 
+        <StatCard
+          title="Due in 1 Month"
+          value={kpis.due30}
           sub="Monthly forecast"
           themeColor="#6366f1"
           trendColor="text-indigo-500"
@@ -401,7 +401,7 @@ const Dashboard = () => {
               <svg viewBox="0 0 24 24" width="14" height="14" stroke="#D15616" strokeWidth="3" fill="none" className="opacity-0 group-hover:opacity-100 transition-opacity"><path d="M9 18l6-6-6-6"></path></svg>
             </NavLink>
           </div>
-          
+
           {/* <div className="mt-8 p-5 bg-gradient-to-br from-[#D15616] to-[#ff7b3a] rounded-md text-white relative overflow-hidden group">
             <div className="absolute -right-4 -bottom-4 h-24 w-24 bg-white/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-1000"></div>
             <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-1">Fleet Health</p>

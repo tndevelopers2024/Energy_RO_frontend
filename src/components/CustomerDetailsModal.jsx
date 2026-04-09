@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import VisitDetailModal from './VisitDetailModal';
+import API_BASE_URL from '../apiConfig';
 
 const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
   const [selectedVisit, setSelectedVisit] = useState(null);
@@ -48,7 +49,7 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
     setShowCancelConfirm(false);
     setIsCancelling(true);
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/customers/${customer._id}/acmc/cancel`, {
+      const res = await fetch(`${API_BASE_URL}/customers/${customer._id}/acmc/cancel`, {
         method: 'PATCH',
       });
       const data = await res.json();
@@ -66,7 +67,7 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
     setShowAcmcConfirm(false);
     setIsActivating(true);
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/customers/${customer._id}/acmc/activate`, {
+      const res = await fetch(`${API_BASE_URL}/customers/${customer._id}/acmc/activate`, {
         method: 'PATCH',
       });
       const data = await res.json();
@@ -96,8 +97,8 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
     <div
       onClick={() => isCompleted && setSelectedVisit({ report, name: `${isACMC ? 'ACMC' : 'Warranty'} Service S${idx + 1}`, index: idx, isACMC })}
       className={`p-5 rounded-2xl border transition-all relative group ${isCompleted
-          ? 'bg-emerald-50/30 border-emerald-100/50 shadow-sm shadow-emerald-100/20 cursor-pointer hover:border-emerald-300 hover:shadow-emerald-200/40 hover:-translate-y-1'
-          : 'bg-gray-50/30 border-gray-100 shadow-sm'
+        ? 'bg-emerald-50/30 border-emerald-100/50 shadow-sm shadow-emerald-100/20 cursor-pointer hover:border-emerald-300 hover:shadow-emerald-200/40 hover:-translate-y-1'
+        : 'bg-gray-50/30 border-gray-100 shadow-sm'
         }`}
     >
       {isCompleted && (

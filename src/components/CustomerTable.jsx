@@ -4,6 +4,7 @@ import ServiceModal from './ServiceModal';
 import CustomerDetailsModal from './CustomerDetailsModal';
 import EditCustomerModal from './EditCustomerModal';
 import DateRangePicker from './DateRangePicker';
+import API_BASE_URL from '../apiConfig';
 
 const CustomerTable = () => {
   const location = useLocation();
@@ -134,7 +135,7 @@ const CustomerTable = () => {
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/customers');
+      const res = await fetch(`${API_BASE_URL}/customers`);
       const data = await res.json();
       if (data.success) {
         setCustomers(data.data);
@@ -153,7 +154,7 @@ const CustomerTable = () => {
   const handleDelete = async (customerId) => {
     if (window.confirm('Are you sure you want to delete this record? This action cannot be undone.')) {
       try {
-        const res = await fetch(`http://127.0.0.1:5000/api/customers/${customerId}`, {
+        const res = await fetch(`${API_BASE_URL}/customers/${customerId}`, {
           method: 'DELETE',
         });
         const data = await res.json();
@@ -191,7 +192,7 @@ const CustomerTable = () => {
   const handleServiceSubmit = async (reportData) => {
     try {
       const { customerId, serviceIndex, isACMC } = modalData;
-      const res = await fetch(`http://127.0.0.1:5000/api/customers/${customerId}/services/${serviceIndex}`, {
+      const res = await fetch(`${API_BASE_URL}/customers/${customerId}/services/${serviceIndex}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...reportData, isACMC }),
@@ -214,7 +215,7 @@ const CustomerTable = () => {
 
   const handleEditUpdate = async (customerId, updatedData) => {
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/customers/${customerId}`, {
+      const res = await fetch(`${API_BASE_URL}/customers/${customerId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedData),

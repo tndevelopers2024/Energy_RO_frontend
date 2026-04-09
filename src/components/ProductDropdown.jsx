@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import API_BASE_URL from '../apiConfig';
 
 const ProductDropdown = ({ value, onChange, label }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,7 +10,7 @@ const ProductDropdown = ({ value, onChange, label }) => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:5000/api/customers/products');
+        const res = await fetch(`${API_BASE_URL}/customers/products`);
         const data = await res.json();
         if (data.success) {
           setProducts(data.data);
@@ -35,7 +36,7 @@ const ProductDropdown = ({ value, onChange, label }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filteredProducts = products.filter(p => 
+  const filteredProducts = products.filter(p =>
     p.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -80,11 +81,10 @@ const ProductDropdown = ({ value, onChange, label }) => {
                   key={idx}
                   type="button"
                   onClick={() => handleSelect(product)}
-                  className={`w-full text-left px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-between group ${
-                    searchTerm === product 
-                      ? 'bg-[#D15616] text-white' 
+                  className={`w-full text-left px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-between group ${searchTerm === product
+                      ? 'bg-[#D15616] text-white'
                       : 'text-gray-600 hover:bg-[#D15616]/5 hover:text-[#D15616]'
-                  }`}
+                    }`}
                 >
                   {product}
                   {searchTerm === product && (
