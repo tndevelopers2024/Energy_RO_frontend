@@ -4,6 +4,7 @@ import ServiceModal from './ServiceModal';
 import CustomerDetailsModal from './CustomerDetailsModal';
 import EditCustomerModal from './EditCustomerModal';
 import DateRangePicker from './DateRangePicker';
+import DeleteConfirmModal from './DeleteConfirmModal';
 import API_BASE_URL from '../apiConfig';
 
 const CustomerTable = () => {
@@ -31,6 +32,11 @@ const CustomerTable = () => {
   const [editModal, setEditModal] = useState({
     isOpen: false,
     customer: null
+  });
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    isOpen: false,
+    customerId: null,
+    customerName: ''
   });
 
   const calculateServiceDates = (installationDate) => {
@@ -151,19 +157,27 @@ const CustomerTable = () => {
     fetchCustomers();
   }, []);
 
-  const handleDelete = async (customerId) => {
-    if (window.confirm('Are you sure you want to delete this record? This action cannot be undone.')) {
-      try {
-        const res = await fetch(`${API_BASE_URL}/customers/${customerId}`, {
-          method: 'DELETE',
-        });
-        const data = await res.json();
-        if (data.success) {
-          fetchCustomers();
-        }
-      } catch (error) {
-        console.error("Failed to delete customer", error);
+  const handleDeleteClick = (customerId, customerName) => {
+    setDeleteConfirm({
+      isOpen: true,
+      customerId,
+      customerName
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    const { customerId } = deleteConfirm;
+    try {
+      const res = await fetch(`${API_BASE_URL}/customers/${customerId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDeleteConfirm({ isOpen: false, customerId: null, customerName: '' });
+        fetchCustomers();
       }
+    } catch (error) {
+      console.error("Failed to delete customer", error);
     }
   };
 
@@ -435,7 +449,7 @@ const CustomerTable = () => {
                         <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="3" fill="none"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                       </button>
                       <button
-                        onClick={() => handleDelete(cust._id)}
+                        onClick={() => handleDeleteClick(cust._id, cust.userName)}
                         className="cursor-pointer h-8 w-8 rounded-md bg-red-50 text-red-500 border border-red-100 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all duration-300 active:scale-95"
                         title="Delete Record"
                       >
@@ -482,6 +496,13 @@ const CustomerTable = () => {
         customer={editModal.customer}
         onClose={() => setEditModal({ isOpen: false, customer: null })}
         onUpdate={handleEditUpdate}
+      />
+
+      <DeleteConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        customerName={deleteConfirm.customerName}
+        onClose={() => setDeleteConfirm({ isOpen: false, customerId: null, customerName: '' })}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );
