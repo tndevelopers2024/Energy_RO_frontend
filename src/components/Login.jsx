@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import API_BASE_URL from '../apiConfig';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -15,7 +16,7 @@ const Login = () => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -42,7 +43,7 @@ const Login = () => {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-between font-['Plus_Jakarta_Sans'] overflow-hidden px-12 lg:px-24">
       {/* Cinematic Background Layer */}
-      <div 
+      <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105 animate-[slow-zoom_20s_infinite_alternate]"
         style={{ backgroundImage: `url('/login-bg2.png')` }}
       ></div>
@@ -50,11 +51,11 @@ const Login = () => {
 
       {/* Brand Messaging (Left Aligned) */}
       <div className="relative z-10 hidden lg:block w-full animate-in fade-in slide-in-from-left-12 duration-1000">
-        
+
         <h1 className="text-7xl font-black text-white mb-8 drop-shadow-2xl">
           Advancing <span className="text-[#D15616]"> <br />Pure Water</span> Technology.
         </h1>
-        
+
         <div className="flex items-center gap-6">
           <div className="h-16 w-[2px] bg-white/20 rounded-full"></div>
           <p className="text-white/70 text-lg font-medium leading-relaxed max-w-md">
@@ -66,15 +67,15 @@ const Login = () => {
       {/* Floating Login Container (Right Aligned) */}
       <div className="relative z-10 w-full max-w-[480px]">
         <div className="bg-white rounded-[0.5rem] p-12 md:p-16 shadow-[0_50px_100px_-15px_rgba(0,0,0,0.3)] animate-in fade-in zoom-in slide-in-from-right-12 duration-1000">
-          
+
           {/* Header & Logo */}
           <div className="flex flex-col items-center mb-12">
-              <div className="mb-10">
-                <img src="/energy-logo.png" alt="Energy Enterprises" className="w-[300px] object-contain "/>
-              </div>
-             <p className="text-gray-400 font-bold uppercase tracking-[0.3em] text-[8px] text-center">
-               Admin Management Portal
-             </p>
+            <div className="mb-10">
+              <img src="/energy-logo.png" alt="Energy Enterprises" className="w-[300px] object-contain " />
+            </div>
+            <p className="text-gray-400 font-bold uppercase tracking-[0.3em] text-[8px] text-center">
+              Admin Management Portal
+            </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-7">
@@ -85,8 +86,8 @@ const Login = () => {
             )}
             <div className="space-y-2">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pb-4">Administrator Email</label>
-              <input 
-                type="email" 
+              <input
+                type="email"
                 required
                 disabled={loading}
                 value={email}
@@ -98,8 +99,8 @@ const Login = () => {
 
             <div className="space-y-2">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Access Key / Password</label>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 required
                 disabled={loading}
                 value={password}
@@ -109,7 +110,7 @@ const Login = () => {
               />
             </div>
 
-            <button 
+            <button
               type="submit"
               disabled={loading}
               className={`w-full py-4.5 bg-[#D15616] hover:bg-[#b84a12] text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-md shadow-2xl shadow-[#D15616]/20 transition-all hover:scale-[1.03] active:scale-[0.97] mt-2 flex items-center justify-center gap-3 group relative overflow-hidden ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
