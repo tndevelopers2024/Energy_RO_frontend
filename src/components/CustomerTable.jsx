@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { FaWhatsapp } from 'react-icons/fa';
 import ServiceModal from './ServiceModal';
 import CustomerDetailsModal from './CustomerDetailsModal';
 import EditCustomerModal from './EditCustomerModal';
@@ -266,6 +267,64 @@ const CustomerTable = () => {
     setActiveTab('all');
   };
 
+  const exportToCSV = () => {
+    const headers = [
+      'Customer Name',
+      'Mobile Number',
+      'Order No',
+      'Product & Model',
+      'Installation Date',
+      'Type',
+      'ACMC Status',
+      'Next Service Due',
+      'Next Service Date'
+    ];
+
+    const rows = filteredCustomers.map(cust => {
+      const isACMC = cust.isACMC;
+      const services = isACMC ? cust.acmcServicesCompleted : cust.servicesCompleted;
+      const nextIdx = services?.findIndex(status => !status);
+      const isAllDone = nextIdx === -1;
+      const baseDate = isACMC ? cust.acmcStartDate : cust.dateOfInstallationOrService;
+      const serviceDate = !isAllDone ? (isACMC ? calculateAcmcDates(baseDate) : calculateServiceDates(baseDate))[nextIdx] : null;
+
+      const nextServiceLabel = !isAllDone
+        ? (isACMC ? `ACMC Service ${nextIdx + 1}` : `Service ${nextIdx + 1}`)
+        : 'Warranty Expired';
+
+      const nextServiceDate = serviceDate
+        ? serviceDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+        : 'N/A';
+
+      return [
+        `"${cust.userName || ''}"`,
+        `"${cust.mobileNumber || ''}"`,
+        `"${cust.orderNo || ''}"`,
+        `"${cust.productNameAndModel || ''}"`,
+        `"${cust.dateOfInstallationOrService ? new Date(cust.dateOfInstallationOrService).toLocaleDateString() : 'N/A'}"`,
+        `"${cust.type || ''}"`,
+        `"${isACMC ? 'Yes' : 'No'}"`,
+        `"${nextServiceLabel}"`,
+        `"${nextServiceDate}"`
+      ];
+    });
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `energy_records_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="bg-white rounded-md shadow-2xl shadow-gray-200/50 border border-gray-50 font-['Plus_Jakarta_Sans']">
       <div className="px-8 py-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center bg-white">
@@ -274,6 +333,13 @@ const CustomerTable = () => {
           <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-1 opacity-70">Management Console</p>
         </div>
         <div className="flex items-center gap-3 mt-4 md:mt-0">
+          <button
+            onClick={exportToCSV}
+            className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-md text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all duration-300 shadow-sm"
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="3" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export CSV
+          </button>
           <div className="text-xl font-black text-[#D15616] bg-[#D15616]/10 px-4 py-2 rounded-md border border-[#D15616]/5 uppercase tracking-tighter">
             {filteredCustomers.length} <span className='!text-[16px] font-bold'>Users</span>
           </div>
@@ -434,6 +500,7 @@ const CustomerTable = () => {
                   </td>
                   <td className="px-8 py-5 text-center">
                     <div className="flex items-center justify-center gap-2">
+                      
                       <button
                         onClick={() => setDetailsModal({ isOpen: true, customer: cust })}
                         className="cursor-pointer h-8 w-8 rounded-md bg-[#D15616]/5 text-[#D15616] border border-[#D15616]/10 flex items-center justify-center hover:bg-[#D15616] hover:text-white transition-all duration-300 shadow-sm"
@@ -454,6 +521,14 @@ const CustomerTable = () => {
                         title="Delete Record"
                       >
                         <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="3" fill="none"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                      </button>
+                      |
+                      <button
+                        onClick={() => window.open(`https://wa.me/${cust.mobileNumber?.replace(/\s/g, '')}`, '_blank')}
+                        className="cursor-pointer h-8 w-8 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all duration-300 shadow-sm"
+                        title="Message on WhatsApp"
+                      >
+                        <FaWhatsapp size={16} />
                       </button>
                     </div>
                   </td>
