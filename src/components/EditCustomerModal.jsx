@@ -188,7 +188,7 @@ const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }) => {
                 />
               </div>
               <div className="col-span-1 md:col-span-3 space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Area / Landmark</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Area</label>
                 <input
                   type="text"
                   value={formData.area}
@@ -203,7 +203,21 @@ const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }) => {
                   type="text"
                   maxLength={6}
                   value={formData.pincode}
-                  onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+                  onChange={(e) => {
+                    const onlyNums = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setFormData(prev => ({ ...prev, pincode: onlyNums }));
+                    
+                    if (onlyNums.length === 6) {
+                      fetch(`https://api.postalpincode.in/pincode/${onlyNums}`)
+                        .then(res => res.json())
+                        .then(data => {
+                          if (data && data[0] && data[0].Status === 'Success' && data[0].PostOffice && data[0].PostOffice.length > 0) {
+                            setFormData(prev => ({ ...prev, area: data[0].PostOffice[0].Name }));
+                          }
+                        })
+                        .catch(err => console.error("Error fetching pincode data:", err));
+                    }
+                  }}
                   className="w-full px-4 py-3 rounded-md border border-gray-200 focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none font-bold text-gray-800 text-sm"
                   placeholder="6 digits"
                 />

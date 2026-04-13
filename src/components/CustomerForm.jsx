@@ -162,6 +162,18 @@ const CustomerForm = () => {
     if (name === 'pincode') {
       const onlyNums = value.replace(/\D/g, '').slice(0, 6);
       setFormData(prev => ({ ...prev, [name]: onlyNums }));
+      
+      if (onlyNums.length === 6) {
+        fetch(`https://api.postalpincode.in/pincode/${onlyNums}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && data[0] && data[0].Status === 'Success' && data[0].PostOffice && data[0].PostOffice.length > 0) {
+              // Automatically fill area with the first post office name
+              setFormData(prev => ({ ...prev, area: data[0].PostOffice[0].Name }));
+            }
+          })
+          .catch(err => console.error("Error fetching pincode data:", err));
+      }
       return;
     }
 
@@ -221,7 +233,7 @@ const CustomerForm = () => {
   return (
     <div className="bg-white p-8 md:p-12 rounded-xl shadow-2xl shadow-gray-200/50 border border-gray-50 max-w-4xl mx-auto font-['Plus_Jakarta_Sans']">
       <div className="mb-10">
-        <h2 className="text-3xl font-black text-gray-900 tracking-tight">Registeration Form</h2>
+        <h2 className="text-3xl font-black text-gray-900 tracking-tight">Registration Form</h2>
         <div className="h-1.5 w-12 bg-[#D15616] mt-3 rounded-full"></div>
         <p className="text-sm text-gray-400 mt-4 font-semibold opacity-70">Fill out the customer and product details carefully.</p>
       </div>
@@ -294,7 +306,7 @@ const CustomerForm = () => {
             </div>
             <div className="col-span-1 md:col-span-3">
               <InputField
-                label="Area / Landmark"
+                label="Area"
                 name="area"
                 value={formData.area}
                 onChange={handleChange}

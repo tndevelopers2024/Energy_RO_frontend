@@ -312,7 +312,7 @@ const CustomerTable = () => {
       'Email',
       'Door No',
       'Street Name',
-      'Area / Landmark',
+      'Area',
       'Pincode',
       'Full Address',
       'Product & Model',
