@@ -79,7 +79,8 @@ const DateRangePicker = ({ startDate, endDate, onRangeSelect, isSingle = false, 
   const handleNextYear  = () => setCurrentDate(new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), 1));
 
   const handleDateClick = (day) => {
-    const selectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    // Generate date at 12:00 Noon local time to avoid timezone offsets pushing it to previous day 
+    const selectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day, 12, 0, 0);
     if (isSingle) {
       setTempStart(selectedDate);
       onRangeSelect(selectedDate, null);
@@ -101,17 +102,21 @@ const DateRangePicker = ({ startDate, endDate, onRangeSelect, isSingle = false, 
   const handleApply = () => { onRangeSelect(tempStart, tempEnd); setIsOpen(false); };
   const handleClear = () => { setTempStart(null); setTempEnd(null); onRangeSelect(null, null); setIsOpen(false); };
 
+  const checkDateMatch = (d1, y, m, d) => {
+    return d1 && d1.getFullYear() === y && d1.getMonth() === m && d1.getDate() === d;
+  };
+
   const isToday = (day) => {
     const today = new Date();
-    return today.getDate() === day && today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear();
+    return checkDateMatch(today, currentDate.getFullYear(), currentDate.getMonth(), day);
   };
   const isSelected = (day) => {
-    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-    return (tempStart && date.getTime() === tempStart.getTime()) || (tempEnd && date.getTime() === tempEnd.getTime());
+    return checkDateMatch(tempStart, currentDate.getFullYear(), currentDate.getMonth(), day) || 
+           checkDateMatch(tempEnd, currentDate.getFullYear(), currentDate.getMonth(), day);
   };
   const isInRange = (day) => {
     if (!tempStart || !tempEnd) return false;
-    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day, 12, 0, 0);
     return date > tempStart && date < tempEnd;
   };
 

@@ -38,6 +38,10 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
   const acmcDates = calculateAcmcDates(customer.acmcStartDate);
 
   const isWarrantyExpired = !customer.isACMC && serviceDates[2] && new Date() > serviceDates[2];
+  const isAcmcCompletedOrExpired = customer.isACMC && (
+    (new Date() > new Date(customer.acmcExpiryDate)) || 
+    (customer.acmcServicesCompleted?.length === 3 && customer.acmcServicesCompleted.every(status => status === true))
+  );
 
   const handleActivateACMC = () => {
     setShowAcmcConfirm(true);
@@ -182,8 +186,8 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              {customer.isACMC && (
+            <div className="flex items-center gap-2">
+              {customer.isACMC && !isAcmcCompletedOrExpired && (
                 <button
                   onClick={handleCancelACMC}
                   disabled={isCancelling}
@@ -191,6 +195,16 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
                 >
                   {isCancelling ? 'Cancelling...' : 'Cancel ACMC'}
                   {!isCancelling && <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="3" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>}
+                </button>
+              )}
+              {isAcmcCompletedOrExpired && (
+                <button
+                  onClick={handleActivateACMC}
+                  disabled={isActivating}
+                  className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-[9px] font-black px-4 py-2.5 rounded-lg uppercase tracking-widest border border-emerald-200 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
+                >
+                  {isActivating ? 'Renewing...' : 'Renew ACMC'}
+                  {!isActivating && <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="3" fill="none"><path d="M12 2v20M2 12h20"></path></svg>}
                 </button>
               )}
               {isWarrantyExpired && (
@@ -203,7 +217,7 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
                   {!isActivating && <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="3" fill="none"><path d="M12 2v20M2 12h20"></path></svg>}
                 </button>
               )}
-              <button onClick={onClose} className="p-2 hover:bg-gray-50 rounded-full text-gray-400 hover:text-gray-600 transition-all">
+              <button onClick={onClose} className="p-2 ml-2 hover:bg-gray-50 rounded-full text-gray-400 hover:text-gray-600 transition-all">
                 <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>
@@ -339,9 +353,9 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
               <div className="mx-auto w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-4">
                 <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" strokeWidth="2.5" fill="none"><circle cx="12" cy="12" r="10"></circle><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path><circle cx="12" cy="12" r="2"></circle></svg>
               </div>
-              <h3 className="text-xl font-black text-gray-900 tracking-tight">Activate ACMC Cycle</h3>
+              <h3 className="text-xl font-black text-gray-900 tracking-tight">Activate / Renew ACMC</h3>
               <p className="text-sm font-semibold text-gray-500">
-                This will jumpstart a new 1-year service cycle. Please select the activation date:
+                This will jumpstart a new 1-year service cycle. Please select the start date:
               </p>
               
               <div className="mt-6 space-y-3 text-left">
