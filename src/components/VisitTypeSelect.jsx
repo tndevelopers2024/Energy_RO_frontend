@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const DEFAULT_VISIT_TYPES = [
+export const DEFAULT_VISIT_TYPES = [
     { code: 'MS', label: 'Mandatory Service' },
     { code: 'CS', label: 'Contract Service' },
     { code: 'C',  label: 'Complaints' },

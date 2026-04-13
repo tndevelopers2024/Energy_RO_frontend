@@ -288,14 +288,14 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
             </div>
 
             {/* Flattened Table */}
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto px-2">
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-gray-50/50 text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] border-b border-gray-100">
                             <th className="px-2 py-5 w-[10%]">Date</th>
-                            <th className="px-2 py-5 w-[15%]">Service Engineer</th>
+                            <th className="px-2 py-5 w-[10%]">Service Engineer</th>
                             <th className="px-2 py-5 w-[10%]">Complaint No</th>
-                            <th className="px-2 py-5 w-[20%]">Customer Details</th>
+                            <th className="px-2 py-5 w-[15%]">Customer Details</th>
                             <th className="px-2 py-5 w-[10%]">Product</th>
                             <th className="px-2 py-5 w-[10%] text-center">Visit Type</th>
                             <th className="px-2 py-5 w-[8%]">Status</th>

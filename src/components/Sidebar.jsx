@@ -60,9 +60,10 @@ const Sidebar = () => {
           className={`transition-all duration-300 origin-left ${isCollapsed ? 'w-0 opacity-0 hidden' : 'w-full opacity-100 block'}`}
         />
         {isCollapsed && (
-          <div className="h-10 w-10 min-w-[40px] bg-gray-900 text-white rounded-xl flex items-center justify-center font-bold text-xl shadow-md">
-            E
-          </div>
+          // <div className="h-10 w-10 min-w-[40px] bg-gray-900 text-white rounded-xl flex items-center justify-center font-bold text-xl shadow-md">
+          //   E
+          // </div>
+          <img src="/energy-favicon.png" alt="Energy Enterprises Logo" className="w-10 h-10" />
         )}
       </div>
 

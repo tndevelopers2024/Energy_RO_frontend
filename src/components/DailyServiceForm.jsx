@@ -4,12 +4,12 @@ import axios from 'axios';
 import API_BASE_URL from '../apiConfig';
 import DailyServiceRecords from './DailyServiceRecords';
 import TimePicker from './TimePicker';
-import VisitTypeSelect from './VisitTypeSelect';
+import VisitTypeSelect, { DEFAULT_VISIT_TYPES } from './VisitTypeSelect';
 import CodeSelect from './CodeSelect';
 import ProductSelect from './ProductSelect';
 import DateRangePicker from './DateRangePicker';
-import ServiceEntryModal from './ServiceEntryModal';
-
+import ServiceEntryModal, { STATUS_OPTIONS } from './ServiceEntryModal';
+import DeleteConfirmModal from './DeleteConfirmModal';
 
 const DailyServiceForm = () => {
     const [header, setHeader] = useState({
@@ -21,6 +21,7 @@ const DailyServiceForm = () => {
     const [entries, setEntries] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingIndex, setEditingIndex] = useState(null);
+    const [entryToDelete, setEntryToDelete] = useState(null);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
     const [activeTab, setActiveTab] = useState('form'); // 'form' or 'records'
@@ -46,6 +47,18 @@ const DailyServiceForm = () => {
         };
         fetchMetadata();
     }, [refreshTrigger]);
+
+    const getFullVisitType = (code) => {
+        if (!code) return '-';
+        const match = DEFAULT_VISIT_TYPES.find(v => v.code === code);
+        return match ? match.label : code;
+    };
+
+    const getFullStatus = (code) => {
+        if (!code) return 'Pending';
+        const match = STATUS_OPTIONS.find(s => s.code === code);
+        return match ? match.label : code;
+    };
 
     const handleHeaderChange = (e) => {
         setHeader({ ...header, [e.target.name]: e.target.value });
@@ -261,12 +274,12 @@ const DailyServiceForm = () => {
                                 <thead>
                                     <tr className="text-black uppercase tracking-widest text-[10px]">
                                         <th className="p-4 w-[12%]">Compl. No</th>
-                                        <th className="p-4 w-[25%]">Customer Details</th>
+                                        <th className="p-4 w-[10%]">Customer Details</th>
                                         <th className="p-4 w-[12%]">Product</th>
-                                        <th className="p-4 w-[8%] text-center">VT</th>
-                                        <th className="p-4 w-[12%]">Status</th>
-                                        <th className="p-4 w-[12%] text-center">Time</th>
-                                        <th className="p-4 text-center w-[12%]">Charges</th>
+                                        <th className="p-4 w-[10%] text-center">VT</th>
+                                        <th className="p-4 w-[10%]">Status</th>
+                                        <th className="p-4 w-[10%] text-center">Time</th>
+                                        <th className="p-4 text-center w-[10%]">Charges</th>
                                         <th className="p-4 w-[7%] text-center">Actions</th>
                                     </tr>
                                 </thead>
@@ -287,7 +300,7 @@ const DailyServiceForm = () => {
                                             <tr key={index} className="hover:bg-blue-50/30 transition-colors group">
                                                 <td className="p-4">
                                                     <p className="text-xs font-black text-[#0c1f3d]">{entry.complaintNo}</p>
-                                                    <p className="text-[10px] text-gray-400 font-bold uppercase truncate max-w-[100px]">{entry.visitType}</p>
+                                                    <p className="text-[10px] text-gray-400 font-bold uppercase truncate max-w-[100px]">{getFullVisitType(entry.visitType)}</p>
                                                 </td>
                                                 <td className="p-4">
                                                     <p className="text-xs font-bold text-gray-800">{entry.customerName || entry.customerDetails}</p>
@@ -298,11 +311,11 @@ const DailyServiceForm = () => {
                                                     <p className="text-xs font-bold text-gray-600 truncate">{entry.product}</p>
                                                 </td>
                                                 <td className="p-4 text-center">
-                                                    <span className="px-2 py-1 bg-gray-100 rounded text-[9px] font-black text-gray-500 uppercase">{entry.visitType || '-'}</span>
+                                                    <span className="px-2 py-1 bg-gray-100 rounded text-[9px] font-black text-gray-500 uppercase">{getFullVisitType(entry.visitType)}</span>
                                                 </td>
                                                 <td className="p-4">
-                                                    <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase ${entry.status?.toLowerCase().includes('complete') ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
-                                                        {entry.status || 'Pending'}
+                                                    <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase ${entry.status?.toLowerCase().includes('complete') || getFullStatus(entry.status).toLowerCase().includes('complete') ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
+                                                        {getFullStatus(entry.status)}
                                                     </span>
                                                 </td>
                                                 <td className="p-4 text-center">
@@ -316,13 +329,13 @@ const DailyServiceForm = () => {
                                                     </div>
                                                 </td>
                                                 <td className="p-4">
-                                                    <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <div className="flex items-center justify-center gap-2 group-hover:opacity-100 transition-opacity">
                                                         <button onClick={() => openEditModal(index)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer">
                                                             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3">
                                                                 <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
                                                             </svg>
                                                         </button>
-                                                        <button onClick={() => removeEntry(index)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer">
+                                                        <button onClick={() => setEntryToDelete(index)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer">
                                                             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3">
                                                                 <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                                                             </svg>
@@ -377,6 +390,18 @@ const DailyServiceForm = () => {
                         onSave={handleSaveEntry}
                         entry={editingIndex !== null ? entries[editingIndex] : null}
                         isEdit={editingIndex !== null}
+                    />
+
+                    {/* Delete Confirmation Modal */}
+                    <DeleteConfirmModal
+                        isOpen={entryToDelete !== null}
+                        onClose={() => setEntryToDelete(null)}
+                        onConfirm={() => {
+                            removeEntry(entryToDelete);
+                            setEntryToDelete(null);
+                        }}
+                        title="Remove Entry?"
+                        message="Are you sure you want to remove this entry from your daily log?"
                     />
                 </>
             ) : (
