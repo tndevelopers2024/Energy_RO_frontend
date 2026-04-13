@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { FaWhatsapp } from 'react-icons/fa';
 import ServiceModal from './ServiceModal';
@@ -6,6 +6,7 @@ import CustomerDetailsModal from './CustomerDetailsModal';
 import EditCustomerModal from './EditCustomerModal';
 import DateRangePicker from './DateRangePicker';
 import DeleteConfirmModal from './DeleteConfirmModal';
+import Pagination from './Pagination';
 import API_BASE_URL from '../apiConfig';
 
 const CustomerTable = () => {
@@ -18,6 +19,9 @@ const CustomerTable = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const [modalData, setModalData] = useState({
     isOpen: false,
@@ -139,6 +143,39 @@ const CustomerTable = () => {
   };
 
   const filteredCustomers = getFilteredCustomers();
+
+  // 4. Group customers by mobile number for a cleaner table view
+  const groupedCustomers = useMemo(() => {
+    const groups = new Map();
+    
+    filteredCustomers.forEach(cust => {
+      const key = cust.mobileNumber || cust._id; // Fallback to ID if no mobile
+      if (!groups.has(key)) {
+        groups.set(key, {
+          id: key,
+          userName: cust.userName,
+          mobileNumber: cust.mobileNumber,
+          records: []
+        });
+      }
+      groups.get(key).records.push(cust);
+    });
+    
+    return Array.from(groups.values());
+  }, [filteredCustomers]);
+
+  // Pagination Logic
+  const totalItems = groupedCustomers.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, startDate, endDate, activeTab]);
+
+  const pagedCustomers = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return groupedCustomers.slice(start, start + itemsPerPage);
+  }, [groupedCustomers, currentPage, itemsPerPage]);
 
   const fetchCustomers = async () => {
     try {
@@ -268,14 +305,28 @@ const CustomerTable = () => {
   };
 
   const exportToCSV = () => {
+    // For CSV, we'll keep it as individual records (not grouped) for better data analysis
     const headers = [
       'Customer Name',
       'Mobile Number',
-      'Order No',
+      'Email',
+      'Door No',
+      'Street Name',
+      'Area / Landmark',
+      'Pincode',
+      'Full Address',
       'Product & Model',
+      'Unit Serial No',
+      'Card No',
+      'Order ID',
       'Installation Date',
       'Type',
+      'Occupation',
+      'Date of Birth',
+      'Wedding Anniversary',
+      'Location Link',
       'ACMC Status',
+      'ACMC Start Date',
       'Next Service Due',
       'Next Service Date'
     ];
@@ -296,20 +347,35 @@ const CustomerTable = () => {
         ? serviceDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
         : 'N/A';
 
+      const escape = (str) => `"${String(str || '').replace(/"/g, '""')}"`;
+
       return [
-        `"${cust.userName || ''}"`,
-        `"${cust.mobileNumber || ''}"`,
-        `"${cust.orderNo || ''}"`,
-        `"${cust.productNameAndModel || ''}"`,
-        `"${cust.dateOfInstallationOrService ? new Date(cust.dateOfInstallationOrService).toLocaleDateString() : 'N/A'}"`,
-        `"${cust.type || ''}"`,
-        `"${isACMC ? 'Yes' : 'No'}"`,
-        `"${nextServiceLabel}"`,
-        `"${nextServiceDate}"`
+        escape(cust.userName),
+        escape(cust.mobileNumber),
+        escape(cust.email),
+        escape(cust.doorNo),
+        escape(cust.street),
+        escape(cust.area),
+        escape(cust.pincode),
+        escape(cust.address),
+        escape(cust.productNameAndModel),
+        escape(cust.unitSerialNumber),
+        escape(cust.cardNumber),
+        escape(cust.orderNo),
+        escape(cust.dateOfInstallationOrService ? new Date(cust.dateOfInstallationOrService).toLocaleDateString() : ''),
+        escape(cust.type),
+        escape(cust.occupation),
+        escape(cust.dob ? new Date(cust.dob).toLocaleDateString() : ''),
+        escape(cust.weddingAnniversary ? new Date(cust.weddingAnniversary).toLocaleDateString() : ''),
+        escape(cust.locationLink),
+        escape(isACMC ? 'Yes' : 'No'),
+        escape(cust.acmcStartDate ? new Date(cust.acmcStartDate).toLocaleDateString() : ''),
+        escape(nextServiceLabel),
+        escape(nextServiceDate)
       ];
     });
 
-    const csvContent = [
+    const csvContent = "\uFEFF" + [
       headers.join(','),
       ...rows.map(row => row.join(','))
     ].join('\n');
@@ -420,122 +486,7 @@ const CustomerTable = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--bg-main)]">
-            {filteredCustomers.map((cust) => {
-              const isACMC = cust.isACMC;
-              const services = isACMC ? cust.acmcServicesCompleted : cust.servicesCompleted;
-              const nextIdx = services?.findIndex(status => !status);
-              const isAllDone = nextIdx === -1;
-
-              const baseDate = isACMC ? cust.acmcStartDate : cust.dateOfInstallationOrService;
-              const serviceDate = !isAllDone ? (isACMC ? calculateAcmcDates(baseDate) : calculateServiceDates(baseDate))[nextIdx] : null;
-              const isPast = serviceDate && serviceDate < new Date();
-
-              return (
-                <tr key={cust._id} className="hover:bg-[#D15616]/5 transition-all duration-300 group">
-                  <td className="px-8 py-5">
-                    <div className="font-bold text-gray-900 text-sm flex items-center gap-2">
-                      {cust.userName}
-                      {isACMC && (
-                        <span className="bg-emerald-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest shadow-sm">ACMC</span>
-                      )}
-                      <span className="h-1 w-1 rounded-full bg-[#D15616] opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                    </div>
-                    <div className="text-[11px] text-gray-400 font-bold mt-0.5 tracking-tight">{cust.mobileNumber}</div>
-                  </td>
-                  <td className="px-8 py-5">
-                    <div className="font-bold text-gray-800 text-[13px] break-words whitespace-normal">{cust.productNameAndModel || 'Generic RO System'}</div>
-                    {/* <div className={`inline-flex mt-1.5 items-center px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border ${
-                      cust.type === 'Installation' 
-                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
-                        : 'bg-[#D15616]/10 text-[#D15616] border-[#D15616]/10'
-                    }`}>
-                      {cust.type}
-                    </div> */}
-                  </td>
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <p className="text-[13px] font-bold text-gray-700 tracking-tight">
-                          {cust.dateOfInstallationOrService ? new Date(cust.dateOfInstallationOrService).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Pending'}
-                        </p>
-                        {/* <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-0.5">Transaction</p> */}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-5">
-                    <div className="flex justify-center">
-                      {!isAllDone ? (
-                        <div className="flex flex-col items-center">
-                          <button
-                            onClick={() => openServiceModal(cust._id, cust.userName, nextIdx, isACMC)}
-                            className={`h-7 w-auto px-3 mb-1 rounded-md border flex items-center justify-center text-[9px] font-black tracking-widest transition-all hover:scale-105 active:scale-95 ${isPast
-                              ? 'bg-red-50 border-red-100 text-red-500 shadow-sm shadow-red-50'
-                              : isACMC
-                                ? 'bg-emerald-50 border-emerald-100 text-emerald-600 shadow-sm'
-                                : 'bg-[#D15616]/5 border-[#D15616]/20 text-[#D15616] shadow-sm'
-                              }`}
-                          >
-                            {isACMC ? `ACMC Service ${nextIdx + 1}` : `Service ${nextIdx + 1}`} • {isPast ? 'PENDING' : 'DUE'}
-                          </button>
-                          <span className={`text-[10px] font-black uppercase ${isPast ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
-                            {serviceDate?.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 px-3 py-1 bg-red-50 border border-red-100 rounded-full">
-                          <span className="h-1 w-1 rounded-full bg-red-500"></span>
-                          <span className="text-[9px] font-black text-red-600 uppercase tracking-widest">Warranty expired</span>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-8 py-5 text-center">
-                    <div className="flex flex-col gap-0.5 items-center">
-                      {cust.orderNo && (
-                        <div className="font-black text-gray-600 text-[10px] flex items-center gap-1">
-                          <span className="text-gray-300">ORD</span> #{cust.orderNo}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-8 py-5 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      
-                      <button
-                        onClick={() => setDetailsModal({ isOpen: true, customer: cust })}
-                        className="cursor-pointer h-8 w-8 rounded-md bg-[#D15616]/5 text-[#D15616] border border-[#D15616]/10 flex items-center justify-center hover:bg-[#D15616] hover:text-white transition-all duration-300 shadow-sm"
-                        title="View Full Profile"
-                      >
-                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="3" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                      </button>
-                      <button
-                        onClick={() => setEditModal({ isOpen: true, customer: cust })}
-                        className="cursor-pointer h-8 w-8 rounded-md bg-blue-50 text-blue-500 border border-blue-100 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all duration-300 shadow-sm"
-                        title="Edit Customer Details"
-                      >
-                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="3" fill="none"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(cust._id, cust.userName)}
-                        className="cursor-pointer h-8 w-8 rounded-md bg-red-50 text-red-500 border border-red-100 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all duration-300 active:scale-95"
-                        title="Delete Record"
-                      >
-                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="3" fill="none"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                      </button>
-                      |
-                      <button
-                        onClick={() => window.open(`https://wa.me/${cust.mobileNumber?.replace(/\s/g, '')}`, '_blank')}
-                        className="cursor-pointer h-8 w-8 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all duration-300 shadow-sm"
-                        title="Message on WhatsApp"
-                      >
-                        <FaWhatsapp size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-            {filteredCustomers.length === 0 && (
+            {pagedCustomers.length === 0 ? (
               <tr>
                 <td colSpan="6" className="px-10 py-24 text-center">
                   <div className="flex flex-col items-center justify-center gap-4 grayscale opacity-40">
@@ -544,10 +495,30 @@ const CustomerTable = () => {
                   </div>
                 </td>
               </tr>
+            ) : (
+              pagedCustomers.map((group) => (
+                <CustomerRow 
+                  key={group.id} 
+                  group={group} 
+                  openServiceModal={openServiceModal}
+                  setDetailsModal={setDetailsModal}
+                  setEditModal={setEditModal}
+                  handleDeleteClick={handleDeleteClick}
+                />
+              ))
             )}
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        itemsPerPage={itemsPerPage}
+        onPageChange={setCurrentPage}
+        onItemsPerPageChange={setItemsPerPage}
+      />
 
       <ServiceModal
         isOpen={modalData.isOpen}
@@ -579,7 +550,184 @@ const CustomerTable = () => {
         onClose={() => setDeleteConfirm({ isOpen: false, customerId: null, customerName: '' })}
         onConfirm={handleConfirmDelete}
       />
+
     </div>
+  );
+};
+
+// --- Sub-component to handle grouped row logic ---
+const CustomerRow = ({ group, openServiceModal, setDetailsModal, setEditModal, handleDeleteClick }) => {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const cust = group.records[selectedIndex];
+  
+  // Calculate service dates for the currently selected product
+  const calculateServiceDates = (installationDate) => {
+    if (!installationDate) return [];
+    const baseDate = new Date(installationDate);
+    return [4, 8, 12].map(months => {
+      const d = new Date(baseDate);
+      d.setMonth(d.getMonth() + months);
+      return d;
+    });
+  };
+
+  const calculateAcmcDates = (acmcStartDate) => {
+    if (!acmcStartDate) return [];
+    const baseDate = new Date(acmcStartDate);
+    return [4, 8, 12].map(months => {
+      const d = new Date(baseDate);
+      d.setMonth(d.getMonth() + months);
+      return d;
+    });
+  };
+
+  const isACMC = cust.isACMC;
+  const services = isACMC ? cust.acmcServicesCompleted : cust.servicesCompleted;
+  const nextIdx = services?.findIndex(status => !status);
+  const isAllDone = nextIdx === -1;
+
+  const baseDate = isACMC ? cust.acmcStartDate : cust.dateOfInstallationOrService;
+  const serviceDates = isACMC ? calculateAcmcDates(baseDate) : calculateServiceDates(baseDate);
+  const serviceDate = !isAllDone ? serviceDates[nextIdx] : null;
+  const isPast = serviceDate && serviceDate < new Date();
+
+  return (
+    <tr className="hover:bg-[#D15616]/5 transition-all duration-300 group">
+      {/* Customer Details */}
+      <td className="px-8 py-5">
+        <div className="font-bold text-gray-900 text-sm flex items-center gap-2">
+          {cust.userName}
+          <span className="h-1 w-1 rounded-full bg-[#D15616] opacity-0 group-hover:opacity-100 transition-opacity"></span>
+          {group.records.length > 1 && (
+            <span className="text-[8px] font-black bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded uppercase tracking-tighter">
+              {group.records.length} ROs
+            </span>
+          )}
+        </div>
+        <div className="text-[11px] text-gray-400 font-bold mt-0.5 tracking-tight">{cust.mobileNumber}</div>
+      </td>
+
+      {/* Product & Model Dropdown */}
+      <td className="px-8 py-5">
+        <div className="flex flex-col gap-2">
+          {group.records.length > 1 ? (
+            <div className="relative group/select">
+              <select 
+                value={selectedIndex}
+                onChange={(e) => setSelectedIndex(parseInt(e.target.value))}
+                className="w-full bg-orange-50/50 border border-orange-100 rounded-md pl-3 pr-8 py-1.5 text-xs font-bold text-gray-800 focus:outline-none focus:border-[#D15616]/40 appearance-none cursor-pointer hover:bg-orange-50 transition-colors"
+              >
+                {group.records.map((record, idx) => (
+                  <option key={record._id} value={idx}>
+                    {record.productNameAndModel || 'Generic RO'}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-orange-400">
+                <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="3" fill="none">
+                  <path d="M6 9l6 6 6-6"></path>
+                </svg>
+              </div>
+            </div>
+          ) : (
+            <div className="font-bold text-gray-800 text-[13px] break-words whitespace-normal">
+              {cust.productNameAndModel || 'Generic RO System'}
+            </div>
+          )}
+          {isACMC && (
+            <div className="w-fit bg-emerald-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest shadow-sm">
+              ACMC ACTIVE
+            </div>
+          )}
+        </div>
+      </td>
+
+      {/* Installation Date */}
+      <td className="px-8 py-5">
+        <div className="flex items-center gap-3">
+          <div>
+            <p className="text-[13px] font-bold text-gray-700 tracking-tight">
+              {cust.dateOfInstallationOrService ? new Date(cust.dateOfInstallationOrService).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Pending'}
+            </p>
+          </div>
+        </div>
+      </td>
+
+      {/* Next Service Due */}
+      <td className="px-8 py-5">
+        <div className="flex justify-center">
+          {!isAllDone ? (
+            <div className="flex flex-col items-center">
+              <button
+                onClick={() => openServiceModal(cust._id, cust.userName, nextIdx, isACMC)}
+                className={`h-7 w-auto px-3 mb-1 rounded-md border flex items-center justify-center text-[9px] font-black tracking-widest transition-all hover:scale-105 active:scale-95 ${isPast
+                  ? 'bg-red-50 border-red-100 text-red-500 shadow-sm shadow-red-50'
+                  : isACMC
+                    ? 'bg-emerald-50 border-emerald-100 text-emerald-600 shadow-sm'
+                    : 'bg-[#D15616]/5 border-[#D15616]/20 text-[#D15616] shadow-sm'
+                  }`}
+              >
+                {isACMC ? `ACMC Service ${nextIdx + 1}` : `Service ${nextIdx + 1}`} • {isPast ? 'PENDING' : 'DUE'}
+              </button>
+              <span className={`text-[10px] font-black uppercase ${isPast ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
+                {serviceDate?.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-red-50 border border-red-100 rounded-full">
+              <span className="h-1 w-1 rounded-full bg-red-500"></span>
+              <span className="text-[9px] font-black text-red-600 uppercase tracking-widest">Warranty expired</span>
+            </div>
+          )}
+        </div>
+      </td>
+
+      {/* Reference */}
+      <td className="px-8 py-5 text-center">
+        <div className="flex flex-col gap-0.5 items-center">
+          {cust.orderNo && (
+            <div className="font-black text-gray-600 text-[10px] flex items-center gap-1">
+              <span className="text-gray-300">ORD</span> #{cust.orderNo}
+            </div>
+          )}
+        </div>
+      </td>
+
+      {/* Actions */}
+      <td className="px-8 py-5 text-center">
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={() => setDetailsModal({ isOpen: true, customer: cust })}
+            className="cursor-pointer h-8 w-8 rounded-md bg-[#D15616]/5 text-[#D15616] border border-[#D15616]/10 flex items-center justify-center hover:bg-[#D15616] hover:text-white transition-all duration-300 shadow-sm"
+            title="View Full Profile"
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="3" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+          <button
+            onClick={() => setEditModal({ isOpen: true, customer: cust })}
+            className="cursor-pointer h-8 w-8 rounded-md bg-blue-50 text-blue-500 border border-blue-100 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all duration-300 shadow-sm"
+            title="Edit Customer Details"
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="3" fill="none"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          </button>
+          <button
+            onClick={() => handleDeleteClick(cust._id, cust.userName)}
+            className="cursor-pointer h-8 w-8 rounded-md bg-red-50 text-red-500 border border-red-100 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all duration-300 active:scale-95"
+            title="Delete Record"
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="3" fill="none"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+          </button>
+          |
+          <button
+            onClick={() => window.open(`https://wa.me/${cust.mobileNumber?.replace(/\s/g, '')}`, '_blank')}
+            className="cursor-pointer h-8 w-8 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all duration-300 shadow-sm"
+            title="Message on WhatsApp"
+          >
+            <FaWhatsapp size={16} />
+          </button>
+        </div>
+      </td>
+    </tr>
   );
 };
 

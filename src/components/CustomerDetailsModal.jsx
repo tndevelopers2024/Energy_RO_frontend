@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import VisitDetailModal from './VisitDetailModal';
+import DateRangePicker from './DateRangePicker';
 import API_BASE_URL from '../apiConfig';
 
 const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
@@ -9,6 +10,7 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
   const [isCancelling, setIsCancelling] = useState(false);
   const [showAcmcConfirm, setShowAcmcConfirm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [acmcActivationDate, setAcmcActivationDate] = useState(new Date().toISOString().split('T')[0]);
 
   if (!isOpen || !customer) return null;
 
@@ -69,6 +71,10 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
     try {
       const res = await fetch(`${API_BASE_URL}/customers/${customer._id}/acmc/activate`, {
         method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ startDate: acmcActivationDate })
       });
       const data = await res.json();
       if (data.success) {
@@ -221,9 +227,23 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
                 <DetailItem label="Email Address" value={customer.email} />
                 <DetailItem label="Installation Address" value={customer.address} fullWidth />
                 <DetailItem label="Product & Model" value={customer.productNameAndModel} />
-                <DetailItem label="Order ID" value={`ORD #${customer.orderNo}`} />
+                <DetailItem label="Order ID" value={customer.orderNo ? `ORD #${customer.orderNo}` : ''} />
                 <DetailItem label="Installation Date" value={customer.dateOfInstallationOrService ? new Date(customer.dateOfInstallationOrService).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : 'Pending'} />
                 <DetailItem label="Card Number" value={customer.cardNumber} />
+                {customer.unitSerialNumber && <DetailItem label="Unit Serial No" value={customer.unitSerialNumber} />}
+                {customer.occupation && <DetailItem label="Occupation" value={customer.occupation} />}
+                {customer.dob && <DetailItem label="Date of Birth" value={new Date(customer.dob).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })} />}
+                {customer.weddingAnniversary && <DetailItem label="Wedding Anniversary" value={new Date(customer.weddingAnniversary).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })} />}
+                {customer.locationLink && (
+                  <div className="flex flex-col gap-1.5 col-span-full">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                      Location Map Link
+                    </span>
+                    <a href={customer.locationLink} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-blue-500 hover:text-blue-600 hover:underline bg-gray-50/50 px-4 py-2.5 rounded-lg border border-gray-100/50 break-all block">
+                      {customer.locationLink}
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -304,6 +324,7 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
         isOpen={!!selectedVisit}
         report={selectedVisit?.report}
         serviceName={selectedVisit?.name}
+        customer={customer}
         onClose={() => setSelectedVisit(null)}
         onEdit={() => {
           onEditService(customer._id, selectedVisit.index, selectedVisit.isACMC, selectedVisit.report);
@@ -320,8 +341,25 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
               </div>
               <h3 className="text-xl font-black text-gray-900 tracking-tight">Activate ACMC Cycle</h3>
               <p className="text-sm font-semibold text-gray-500">
-                This will jumpstart a new 1-year service cycle for this customer. Do you want to proceed?
+                This will jumpstart a new 1-year service cycle. Please select the activation date:
               </p>
+              
+              <div className="mt-6 space-y-3 text-left">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Activation Date <span className="text-[#D15616]">*</span></p>
+                <div className="relative">
+                  <DateRangePicker 
+                    isSingle={true}
+                    startDate={acmcActivationDate}
+                    onRangeSelect={(start) => setAcmcActivationDate(start ? start.toISOString().split('T')[0] : new Date().toISOString().split('T')[0])}
+                  />
+                </div>
+                <div className="flex items-center gap-2 px-1 pt-1">
+                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                  <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest">
+                    Cycle ends: {new Date(new Date(acmcActivationDate).setFullYear(new Date(acmcActivationDate).getFullYear() + 1)).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </p>
+                </div>
+              </div>
             </div>
             <div className="p-4 bg-gray-50 flex gap-3">
               <button

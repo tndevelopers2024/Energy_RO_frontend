@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
-const DateRangePicker = ({ startDate, endDate, onRangeSelect, isSingle = false, label }) => {
+const DateRangePicker = ({ startDate, endDate, onRangeSelect, isSingle = false, label, required = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [tempStart, setTempStart] = useState(startDate ? new Date(startDate) : null);
@@ -206,7 +206,7 @@ const DateRangePicker = ({ startDate, endDate, onRangeSelect, isSingle = false, 
     <div className={`relative ${isSingle ? 'flex flex-col gap-1.5 w-full' : ''}`}>
       {isSingle && label && (
         <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-          {label} <span className="text-[#D15616]">*</span>
+          {label} {required && <span className="text-[#D15616]">*</span>}
         </label>
       )}
 

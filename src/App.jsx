@@ -5,6 +5,8 @@ import CustomerTable from './components/CustomerTable';
 import Dashboard from './components/Dashboard';
 import Sidebar from './components/Sidebar';
 import Login from './components/Login';
+import DailyServiceForm from './components/DailyServiceForm';
+
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -19,8 +21,8 @@ function App() {
   const location = useLocation();
   const isDatabase = location.pathname === '/database';
   const isDashboard = location.pathname === '/dashboard';
+  const isDailyService = location.pathname === '/daily-service';
   const isLogin = location.pathname === '/login';
-
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')));
 
   useEffect(() => {
@@ -30,6 +32,14 @@ function App() {
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  // Scroll to top on navigation
+  useEffect(() => {
+    const mainElement = document.querySelector('main');
+    if (mainElement) {
+      mainElement.scrollTo(0, 0);
+    }
+  }, [location.pathname]);
 
   return (
     <div className={`flex min-h-screen font-['Plus_Jakarta_Sans'] text-gray-900 overflow-hidden ${isLogin ? 'bg-white' : ''}`}>
@@ -42,10 +52,10 @@ function App() {
           <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 py-5 flex items-center justify-between z-10 transition-all duration-300">
             <div>
               <h2 className="text-xl font-extrabold text-gray-800 tracking-tight">
-                {isDashboard ? 'Performance Analytics' : isDatabase ? 'Database Records' : 'Customer Registration'}
+                {isDashboard ? 'Performance Analytics' : isDatabase ? 'Database Records' : isDailyService ? 'Daily Service Report' : 'Customer Registration'}
               </h2>
               <p className="text-[11px] text-gray-500 font-bold uppercase tracking-wider mt-0.5 opacity-60">
-                {isDashboard ? 'Business intelligence overview' : isDatabase ? 'Complete service history log' : 'Step-by-step onboarding'}
+                {isDashboard ? 'Business intelligence overview' : isDatabase ? 'Complete service history log' : isDailyService ? 'Engineer daily activity log' : 'Step-by-step onboarding'}
               </p>
             </div>
             {/* <div className="flex items-center gap-4">
@@ -84,6 +94,16 @@ function App() {
                 <ProtectedRoute>
                   <div className="transition-all duration-500 transform opacity-100 translate-y-0">
                     <CustomerTable />
+                  </div>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/daily-service" 
+              element={
+                <ProtectedRoute>
+                  <div className="transition-all duration-500 transform opacity-100 translate-y-0">
+                    <DailyServiceForm />
                   </div>
                 </ProtectedRoute>
               } 

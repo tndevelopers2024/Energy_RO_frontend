@@ -8,11 +8,20 @@ const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }) => {
     userName: '',
     mobileNumber: '',
     address: '',
+    doorNo: '',
+    street: '',
+    area: '',
+    pincode: '',
     email: '',
     productNameAndModel: '',
     cardNumber: '',
     dateOfInstallationOrService: '',
-    orderNo: ''
+    orderNo: '',
+    unitSerialNumber: '',
+    occupation: '',
+    dob: '',
+    weddingAnniversary: '',
+    locationLink: ''
   });
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -24,11 +33,20 @@ const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }) => {
         userName: customer.userName || '',
         mobileNumber: customer.mobileNumber || '',
         address: customer.address || '',
+        doorNo: customer.doorNo || '',
+        street: customer.street || '',
+        area: customer.area || '',
+        pincode: customer.pincode || '',
         email: customer.email || '',
         productNameAndModel: customer.productNameAndModel || '',
         cardNumber: customer.cardNumber || '',
         dateOfInstallationOrService: customer.dateOfInstallationOrService ? new Date(customer.dateOfInstallationOrService).toISOString().split('T')[0] : '',
-        orderNo: customer.orderNo || ''
+        orderNo: customer.orderNo || '',
+        unitSerialNumber: customer.unitSerialNumber || '',
+        occupation: customer.occupation || '',
+        dob: customer.dob ? new Date(customer.dob).toISOString().split('T')[0] : '',
+        weddingAnniversary: customer.weddingAnniversary ? new Date(customer.weddingAnniversary).toISOString().split('T')[0] : '',
+        locationLink: customer.locationLink || ''
       });
     }
   }, [customer]);
@@ -147,17 +165,108 @@ const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }) => {
               }}
             />
 
-            {/* Address - Full Width */}
-            <div className="md:col-span-2 space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Mailing Address</label>
-              <textarea
-                rows="3"
-                required
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                className="w-full px-4 py-3 rounded-md border border-gray-200 focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none font-bold text-gray-800 text-sm resize-none"
-              ></textarea>
+            {/* Address Group - Full Width */}
+            <div className="md:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50/50 p-5 rounded-xl border border-gray-100/50 shadow-inner">
+              <div className="md:col-span-1 space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Door No</label>
+                <input
+                  type="text"
+                  value={formData.doorNo}
+                  onChange={(e) => setFormData({ ...formData, doorNo: e.target.value })}
+                  className="w-full px-4 py-3 rounded-md border border-gray-200 focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none font-bold text-gray-800 text-sm"
+                  placeholder="e.g. 12/A"
+                />
+              </div>
+              <div className="md:col-span-3 space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Street Name</label>
+                <input
+                  type="text"
+                  value={formData.street}
+                  onChange={(e) => setFormData({ ...formData, street: e.target.value })}
+                  className="w-full px-4 py-3 rounded-md border border-gray-200 focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none font-bold text-gray-800 text-sm"
+                  placeholder="Street / Colony"
+                />
+              </div>
+              <div className="col-span-1 md:col-span-3 space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Area / Landmark</label>
+                <input
+                  type="text"
+                  value={formData.area}
+                  onChange={(e) => setFormData({ ...formData, area: e.target.value })}
+                  className="w-full px-4 py-3 rounded-md border border-gray-200 focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none font-bold text-gray-800 text-sm"
+                  placeholder="Area Name"
+                />
+              </div>
+              <div className="col-span-1 md:col-span-1 space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Pincode</label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={formData.pincode}
+                  onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+                  className="w-full px-4 py-3 rounded-md border border-gray-200 focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none font-bold text-gray-800 text-sm"
+                  placeholder="6 digits"
+                />
+              </div>
+              {formData.address && !formData.doorNo && (
+                <div className="col-span-full pt-2">
+                  <p className="text-[9px] font-bold text-orange-600 bg-orange-50 px-3 py-2 rounded border border-orange-100 italic">
+                    Legacy Address: {formData.address}
+                  </p>
+                </div>
+              )}
             </div>
+
+            {/* Advanced Info Section */}
+            <div className="md:col-span-2 pt-4 border-t border-gray-100 flex items-center gap-2">
+               <span className="h-1.5 w-1.5 rounded-full bg-[#D15616]"></span>
+               <h4 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em]">Advanced Information</h4>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Unit Serial No</label>
+              <input
+                type="text"
+                value={formData.unitSerialNumber}
+                onChange={(e) => setFormData({ ...formData, unitSerialNumber: e.target.value })}
+                className="w-full px-4 py-3 rounded-md border border-gray-200 focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none font-bold text-gray-800 text-sm"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Occupation</label>
+              <input
+                type="text"
+                value={formData.occupation}
+                onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                className="w-full px-4 py-3 rounded-md border border-gray-200 focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none font-bold text-gray-800 text-sm"
+              />
+            </div>
+
+            <DateRangePicker
+              label="Date of Birth (D.O.B)"
+              isSingle={true}
+              startDate={formData.dob}
+              onRangeSelect={(start) => setFormData(prev => ({ ...prev, dob: start ? start.toISOString().split('T')[0] : '' }))}
+            />
+
+            <DateRangePicker
+              label="Wedding Anniversary"
+              isSingle={true}
+              startDate={formData.weddingAnniversary}
+              onRangeSelect={(start) => setFormData(prev => ({ ...prev, weddingAnniversary: start ? start.toISOString().split('T')[0] : '' }))}
+            />
+
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Location Link (Google Maps)</label>
+              <input
+                type="text"
+                value={formData.locationLink}
+                onChange={(e) => setFormData({ ...formData, locationLink: e.target.value })}
+                className="w-full px-4 py-3 rounded-md border border-gray-200 focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none font-bold text-gray-800 text-sm"
+              />
+            </div>
+
           </div>
 
           <div className="mt-10 flex gap-4">
