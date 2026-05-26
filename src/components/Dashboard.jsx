@@ -156,17 +156,6 @@ const Dashboard = () => {
   const calculateKPIs = () => {
     const now = new Date();
 
-    // Date windows
-    const getWindowDate = (days) => {
-      const d = new Date();
-      d.setDate(now.getDate() + days);
-      return d;
-    };
-
-    const next7Days = getWindowDate(7);
-    const next14Days = getWindowDate(14);
-    const next30Days = getWindowDate(30);
-
     const totalInstallation = customers.filter(c => c.type === 'Installation').length;
     const acmcCount = customers.filter(c => c.isACMC).length;
 
@@ -179,8 +168,10 @@ const Dashboard = () => {
       return installDate > oneYearAgo;
     }).length;
 
-    // Helper to count services due within a specific date window
-    const countDueIn = (windowDate) => {
+    // Helper to count services due in current month
+    const countDueCurrentMonth = () => {
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
       return customers.filter(cust => {
         const isACMC = cust.isACMC;
         const services = isACMC ? cust.acmcServicesCompleted : cust.servicesCompleted;
@@ -194,15 +185,36 @@ const Dashboard = () => {
         const months = [4, 8, 12][nextIdx];
         base.setMonth(base.getMonth() + months);
 
-        return base <= windowDate && base >= now; // must be in the future but before window
+        return base.getFullYear() === currentYear && base.getMonth() === currentMonth;
       }).length;
     };
 
-    const due7 = countDueIn(next7Days);
-    const due14 = countDueIn(next14Days);
-    const due30 = countDueIn(next30Days);
+    // Helper to count services due in next month
+    const countDueNextMonth = () => {
+      const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const nextMonthYear = nextMonthDate.getFullYear();
+      const nextMonthVal = nextMonthDate.getMonth();
+      return customers.filter(cust => {
+        const isACMC = cust.isACMC;
+        const services = isACMC ? cust.acmcServicesCompleted : cust.servicesCompleted;
+        const nextIdx = services?.findIndex(status => !status);
+        if (nextIdx === -1) return false;
 
-    return { totalInstallation, warrantyCount, acmcCount, due7, due14, due30 };
+        const baseDate = isACMC ? cust.acmcStartDate : cust.dateOfInstallationOrService;
+        if (!baseDate) return false;
+
+        const base = new Date(baseDate);
+        const months = [4, 8, 12][nextIdx];
+        base.setMonth(base.getMonth() + months);
+
+        return base.getFullYear() === nextMonthYear && base.getMonth() === nextMonthVal;
+      }).length;
+    };
+
+    const dueCurrentMonth = countDueCurrentMonth();
+    const dueNextMonth = countDueNextMonth();
+
+    return { totalInstallation, warrantyCount, acmcCount, dueCurrentMonth, dueNextMonth };
   };
 
   const kpis = calculateKPIs();
@@ -317,35 +329,25 @@ const Dashboard = () => {
       </div>
 
       {/* Row 2: Service Forecaster */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <StatCard
-          title="Due in 7 Days"
-          value={kpis.due7}
-          sub="Immediate action"
+          title="Due Current Month"
+          value={kpis.dueCurrentMonth}
+          sub="This month's schedule"
           themeColor="#ef4444"
           trendColor="text-red-500"
           icon={<svg viewBox="0 0 24 24" width="20" height="20" stroke="#ef4444" strokeWidth="3" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>}
-          onClick={() => handleCardClick('due7')}
+          onClick={() => handleCardClick('currentMonth')}
         />
         <StatCard
-          title="Due in 14 Days"
-          value={kpis.due14}
-          sub="Short-term planning"
-          themeColor="#f59e0b"
-          trendColor="text-amber-500"
-          icon={<svg viewBox="0 0 24 24" width="20" height="20" stroke="#f59e0b" strokeWidth="3" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>}
-          onClick={() => handleCardClick('due14')}
-        />
-        <StatCard
-          title="Due in 1 Month"
-          value={kpis.due30}
-          sub="Monthly forecast"
+          title="Due Next Month"
+          value={kpis.dueNextMonth}
+          sub="Upcoming month's forecast"
           themeColor="#6366f1"
           trendColor="text-indigo-500"
           icon={<svg viewBox="0 0 24 24" width="20" height="20" stroke="#6366f1" strokeWidth="3" fill="none"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>}
-          onClick={() => handleCardClick('due30')}
+          onClick={() => handleCardClick('nextMonth')}
         />
-
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">

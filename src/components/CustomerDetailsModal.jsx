@@ -132,9 +132,21 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
       </div>
 
       <div className="space-y-3">
-        <div>
-          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Est. Date</p>
-          <p className="text-sm font-bold text-gray-700">{date?.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+        <div className={isCompleted && report?.visitDate ? "grid grid-cols-2 gap-2" : ""}>
+          <div>
+            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Est. Date</p>
+            <p className={`font-bold ${isCompleted && report?.visitDate ? 'text-xs text-gray-500' : 'text-sm text-gray-700'}`}>
+              {date?.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+            </p>
+          </div>
+          {isCompleted && report?.visitDate && (
+            <div>
+              <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-0.5">Visit Date</p>
+              <p className="text-[12px] font-bold text-emerald-700">
+                {new Date(report.visitDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+              </p>
+            </div>
+          )}
         </div>
 
         {isCompleted && report ? (

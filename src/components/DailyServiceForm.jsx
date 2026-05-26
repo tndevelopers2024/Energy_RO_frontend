@@ -14,8 +14,8 @@ import DeleteConfirmModal from './DeleteConfirmModal';
 const DailyServiceForm = () => {
     const [header, setHeader] = useState({
         date: new Date().toISOString().split('T')[0],
-        engineerName: localStorage.getItem('last_engineer_name') || '',
-        branch: localStorage.getItem('last_branch') || ''
+        engineerName: '',
+        branch: ''
     });
 
     const [entries, setEntries] = useState([]);
@@ -86,8 +86,8 @@ const DailyServiceForm = () => {
     };
 
     const handleSubmitReport = async () => {
-        if (!header.engineerName || !header.branch) {
-            setMessage({ type: 'error', text: 'Please fill in Engineer Name and Branch' });
+        if (!header.date || !header.engineerName || !header.branch) {
+            setMessage({ type: 'error', text: 'Please fill in Date of Service, Engineer Name, and Branch' });
             return;
         }
         if (entries.length === 0) {
@@ -103,12 +103,14 @@ const DailyServiceForm = () => {
                 ...header,
                 entries
             });
-            localStorage.setItem('last_engineer_name', header.engineerName);
-            localStorage.setItem('last_branch', header.branch);
             
             setMessage({ type: 'success', text: 'Daily Service Report saved successfully!' });
             setEntries([]);
-            // Keep engineerName and branch for the next report
+            setHeader({
+                date: new Date().toISOString().split('T')[0],
+                engineerName: '',
+                branch: ''
+            });
             setRefreshTrigger(prev => prev + 1);
             // Optionally switch to records tab after success
             setTimeout(() => setActiveTab('records'), 1500);
