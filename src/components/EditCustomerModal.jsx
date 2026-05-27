@@ -154,7 +154,7 @@ const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }) => {
 
             {/* Transaction Date */}
             <DateRangePicker
-              label="Transaction Date"
+              label="Installation Date"
               isSingle={true}
               startDate={formData.dateOfInstallationOrService}
               onRangeSelect={(start) => {

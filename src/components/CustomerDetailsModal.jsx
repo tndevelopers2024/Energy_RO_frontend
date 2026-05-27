@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import VisitDetailModal from './VisitDetailModal';
 import DateRangePicker from './DateRangePicker';
@@ -11,6 +11,31 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
   const [showAcmcConfirm, setShowAcmcConfirm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [acmcActivationDate, setAcmcActivationDate] = useState(new Date().toISOString().split('T')[0]);
+  const [customerComplaints, setCustomerComplaints] = useState([]);
+  const [loadingComplaints, setLoadingComplaints] = useState(true);
+
+  useEffect(() => {
+    const fetchComplaints = async () => {
+      if (!customer?.mobileNumber) return;
+      setLoadingComplaints(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/complaints/customer/${customer.mobileNumber}`);
+        const data = await res.json();
+        if (data.success) {
+          setCustomerComplaints(data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch complaints", error);
+      } finally {
+        setLoadingComplaints(false);
+      }
+    };
+    
+    if (isOpen) {
+      fetchComplaints();
+    }
+  }, [customer?.mobileNumber, isOpen]);
+
 
   if (!isOpen || !customer) return null;
 
@@ -331,6 +356,73 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
                 </div>
               </div>
             )}
+
+            {/* Section 4: Complaint History */}
+            <div className="space-y-6 animate-in slide-in-from-bottom duration-500">
+              <div className="flex items-center justify-between pb-2 border-b border-gray-50">
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
+                  <h4 className="text-xs font-black text-blue-600 uppercase tracking-[0.2em]">Complaint History</h4>
+                </div>
+                <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
+                  {customerComplaints.length} Total Complaints
+                </span>
+              </div>
+
+              {loadingComplaints ? (
+                <div className="text-center py-4 text-xs font-bold text-gray-400 animate-pulse">Loading Complaints...</div>
+              ) : customerComplaints.length === 0 ? (
+                <div className="p-6 text-center border border-dashed border-gray-200 rounded-xl bg-gray-50/30">
+                  <p className="text-xs font-bold text-gray-400">No complaints registered for this customer.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {customerComplaints.map((complaint) => (
+                    <div key={complaint._id} className="p-4 rounded-xl border border-gray-100 bg-white shadow-sm flex flex-col md:flex-row md:items-start gap-4 hover:border-blue-200 transition-colors">
+                      <div className="flex-shrink-0 flex flex-col items-center">
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-xs ${
+                          complaint.status === 'Fixed' ? 'bg-emerald-100 text-emerald-600' :
+                          complaint.status === 'Process' ? 'bg-blue-100 text-blue-600' :
+                          'bg-red-100 text-red-600'
+                        }`}>
+                          {complaint.status === 'Fixed' ? (
+                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="3" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                          ) : complaint.status === 'Process' ? (
+                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                          ) : (
+                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                          )}
+                        </div>
+                        <div className="h-full w-px bg-gray-100 my-2 md:block hidden min-h-[40px]"></div>
+                      </div>
+                      
+                      <div className="flex-1 space-y-2">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{new Date(complaint.date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                            <h5 className="text-sm font-bold text-gray-800 mt-1 whitespace-pre-line">{complaint.complaintDetails}</h5>
+                          </div>
+                          <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md ml-4 shrink-0 ${
+                            complaint.status === 'Fixed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                            complaint.status === 'Process' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
+                            'bg-red-50 text-red-600 border border-red-100'
+                          }`}>
+                            {complaint.status}
+                          </span>
+                        </div>
+                        
+                        {complaint.remarks && (
+                          <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Office Remarks</p>
+                            <p className="text-xs font-semibold text-gray-600 whitespace-pre-line">{complaint.remarks}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Footer */}

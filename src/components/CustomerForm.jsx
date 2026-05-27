@@ -248,9 +248,17 @@ const CustomerForm = () => {
         Record saved successfully! Redirecting...
       </div>}
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="relative">
+      <form onSubmit={handleSubmit} className="space-y-10">
+        {/* Personal Information Section */}
+        <div className="space-y-6 bg-gray-50/30 p-6 rounded-2xl border border-gray-100/50">
+          <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+            <div className="h-8 w-8 rounded-lg bg-orange-50 text-[#D15616] flex items-center justify-center">
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </div>
+            <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest">Customer Information</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="relative">
             <InputField
               label="Customer Name"
               name="userName"
@@ -332,7 +340,19 @@ const CustomerForm = () => {
               onChange={handleChange}
             />
           </div>
-          <ProductDropdown
+          </div>
+        </div>
+
+        {/* Product Information Section */}
+        <div className="space-y-6 bg-gray-50/30 p-6 rounded-2xl border border-gray-100/50">
+          <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+            <div className="h-8 w-8 rounded-lg bg-orange-50 text-[#D15616] flex items-center justify-center">
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            </div>
+            <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest">Product Information</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <ProductDropdown
             label="Product & Model"
             value={formData.productNameAndModel}
             onChange={handleChange}
@@ -363,6 +383,7 @@ const CustomerForm = () => {
             onChange={handleChange}
             readOnly
           />
+          </div>
         </div>
 
         {/* Advanced Details Accordion */}

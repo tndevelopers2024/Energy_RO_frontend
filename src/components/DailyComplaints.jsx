@@ -12,14 +12,17 @@ const DailyComplaints = () => {
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [message, setMessage] = useState({ type: '', text: '' });
   
   // Autocomplete suggestions state
   const [showCustSuggestions, setShowCustSuggestions] = useState(false);
   
-  // Edit & Delete states
+  // Edit, Delete, View states
   const [editModal, setEditModal] = useState({ isOpen: false, complaint: null });
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null, customerName: '' });
+  const [viewModal, setViewModal] = useState({ isOpen: false, complaint: null });
 
   // Form State
   const [formData, setFormData] = useState({
@@ -160,7 +163,7 @@ const DailyComplaints = () => {
     }
   };
 
-  // Filter complaints based on Search & Status Tab
+  // Filter complaints based on Search, Status & Date Range Tab
   const filteredComplaints = useMemo(() => {
     let result = [...complaints];
 
@@ -168,17 +171,32 @@ const DailyComplaints = () => {
       result = result.filter(c => c.status?.toLowerCase() === statusFilter.toLowerCase());
     }
 
+    if (startDate) {
+      result = result.filter(c => new Date(c.date) >= new Date(startDate));
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      result = result.filter(c => new Date(c.date) <= end);
+    }
+
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
+      
+      const matchingCustomerMobiles = customers
+        .filter(cust => cust.cardNumber?.toLowerCase().includes(term))
+        .map(cust => cust.mobileNumber);
+
       result = result.filter(c => 
         c.customerName?.toLowerCase().includes(term) ||
         c.mobileNumber?.includes(term) ||
-        c.complaintDetails?.toLowerCase().includes(term)
+        c.complaintDetails?.toLowerCase().includes(term) ||
+        matchingCustomerMobiles.includes(c.mobileNumber)
       );
     }
 
     return result;
-  }, [complaints, searchTerm, statusFilter]);
+  }, [complaints, searchTerm, statusFilter, startDate, endDate, customers]);
 
   // Customer suggestions list matching database
   const customerSuggestions = useMemo(() => {
@@ -392,19 +410,47 @@ const DailyComplaints = () => {
               ))}
             </div>
 
-            {/* Search Box */}
-            <div className="relative group w-full md:w-80">
-              <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#D15616] transition-colors" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-              <input
-                type="text"
-                placeholder="Search Name, Phone, Issue..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-white border border-gray-100 rounded-lg pl-11 pr-5 py-3.5 text-xs font-bold text-gray-800 focus:outline-none focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none placeholder:text-gray-300"
+            {/* Right: Search & Stylish Date Range */}
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+              {/* Search Box */}
+              <div className="relative group w-full md:w-64">
+                <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#D15616] transition-colors" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search Name, Phone, Card..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-white border border-gray-100 rounded-lg pl-11 pr-5 py-3 text-xs font-bold text-gray-800 focus:outline-none focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none placeholder:text-gray-300 placeholder:font-black placeholder:uppercase placeholder:tracking-widest placeholder:text-[9px]"
+                />
+              </div>
+
+              {/* Date Range Picker */}
+              <DateRangePicker
+                startDate={startDate}
+                endDate={endDate}
+                onRangeSelect={(start, end) => {
+                  setStartDate(start ? start.toISOString().split('T')[0] : '');
+                  setEndDate(end ? end.toISOString().split('T')[0] : '');
+                }}
               />
+              
+              {(searchTerm || startDate || endDate || statusFilter !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStartDate('');
+                    setEndDate('');
+                    setStatusFilter('all');
+                  }}
+                  className="cursor-pointer text-[10px] font-black text-gray-400 hover:text-[#D15616] uppercase tracking-widest transition-colors flex items-center gap-1.5 px-3 py-2 hover:bg-[#D15616]/5 rounded-md shrink-0"
+                >
+                  <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="3" fill="none"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                  Clear
+                </button>
+              )}
             </div>
           </div>
 
@@ -440,7 +486,7 @@ const DailyComplaints = () => {
                 ) : (
                   filteredComplaints.map((item) => (
                     <tr key={item._id} className="hover:bg-gray-50/50 transition-colors group">
-                      <td className="px-8 py-5 text-xs font-bold text-gray-700">
+                      <td className="px-8 py-5 text-xs font-bold text-gray-700 whitespace-nowrap">
                         {formatDate(item.date)}
                       </td>
                       <td className="px-8 py-5 text-sm font-bold text-gray-900">
@@ -450,19 +496,26 @@ const DailyComplaints = () => {
                         {item.mobileNumber}
                       </td>
                       <td className="px-8 py-5">
-                        <p className="text-xs font-semibold text-gray-600 leading-relaxed max-w-sm whitespace-pre-line">{item.complaintDetails}</p>
+                        <p className="text-xs font-semibold text-gray-600 leading-relaxed max-w-sm whitespace-pre-line line-clamp-2">{item.complaintDetails}</p>
                       </td>
-                      <td className="px-8 py-5 text-center">
+                      <td className="px-8 py-5 text-center whitespace-nowrap">
                         <StatusDropdown
                           status={item.status}
                           onChange={(newStatus) => handleStatusChange(item._id, newStatus)}
                         />
                       </td>
                       <td className="px-8 py-5">
-                        <p className="text-xs font-semibold text-gray-500 italic max-w-xs">{item.remarks || '-'}</p>
+                        <p className="text-xs font-semibold text-gray-500 italic max-w-xs line-clamp-2">{item.remarks || '-'}</p>
                       </td>
                       <td className="px-8 py-5 text-center">
                         <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => setViewModal({ isOpen: true, complaint: item })}
+                            className="cursor-pointer h-8 w-8 rounded-md bg-[#D15616]/5 text-[#D15616] border border-[#D15616]/10 flex items-center justify-center hover:bg-[#D15616] hover:text-white transition-all duration-300 shadow-sm"
+                            title="View Full Details"
+                          >
+                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="3" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                          </button>
                           <button
                             onClick={() => setEditModal({ isOpen: true, complaint: { ...item } })}
                             className="cursor-pointer h-8 w-8 rounded-md bg-blue-50 text-blue-500 border border-blue-100 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all duration-300 shadow-sm"
@@ -637,6 +690,51 @@ const DailyComplaints = () => {
         </div>,
         document.body
       )}
+
+      {/* View Complaint Modal */}
+      {viewModal.isOpen && viewModal.complaint && createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 font-['Plus_Jakarta_Sans']">
+          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white">
+              <div>
+                <h3 className="text-lg font-black text-gray-900 tracking-tight uppercase">Complaint Details</h3>
+                <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">Record for {viewModal.complaint.customerName}</p>
+              </div>
+              <button 
+                onClick={() => setViewModal({ isOpen: false, complaint: null })}
+                className="p-1.5 hover:bg-gray-50 rounded-full text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              <div className="space-y-1">
+                <p className="text-[9px] font-black uppercase tracking-widest text-[#D15616]">Complaint Details</p>
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 text-sm font-semibold text-gray-700 whitespace-pre-line leading-relaxed">
+                  {viewModal.complaint.complaintDetails}
+                </div>
+              </div>
+              {viewModal.complaint.remarks && (
+                <div className="space-y-1">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-[#D15616]">Office Remarks</p>
+                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 text-sm font-semibold text-gray-600 italic whitespace-pre-line leading-relaxed">
+                    {viewModal.complaint.remarks}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="p-4 bg-gray-50 flex gap-3 border-t border-gray-100">
+              <button
+                onClick={() => setViewModal({ isOpen: false, complaint: null })}
+                className="cursor-pointer w-full py-3 bg-white text-gray-700 text-xs font-black uppercase tracking-widest rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors shadow-sm"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
@@ -737,7 +835,7 @@ const StatusDropdown = ({ status, onChange }) => {
         ref={buttonRef}
         type="button"
         onClick={handleToggle}
-        className={`cursor-pointer px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider outline-none border transition-all flex items-center gap-1.5 shadow-sm active:scale-95 ${
+        className={`cursor-pointer px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider outline-none border transition-all flex items-center gap-1.5 shadow-sm active:scale-95 whitespace-nowrap flex-nowrap w-max mx-auto ${
           status === 'Fixed'
             ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100/50'
             : status === 'Process'

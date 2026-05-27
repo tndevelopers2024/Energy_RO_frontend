@@ -498,7 +498,6 @@ const CustomerTable = () => {
               <th className="px-8 py-5 min-w-[180px]">Product & Model</th>
               <th className="px-8 py-5 min-w-[150px]">Date</th>
               <th className="px-8 py-5 text-center min-w-[200px]">Next Service Due</th>
-              <th className="px-8 py-5 text-center">Reference</th>
               <th className="px-8 py-5 text-center">Actions</th>
             </tr>
           </thead>
@@ -681,14 +680,15 @@ const CustomerRow = ({ group, openServiceModal, setDetailsModal, setEditModal, h
             <div className="flex flex-col items-center">
               <button
                 onClick={() => openServiceModal(cust._id, cust.userName, nextIdx, isACMC)}
-                className={`h-7 w-auto px-3 mb-1 rounded-md border flex items-center justify-center text-[9px] font-black tracking-widest transition-all hover:scale-105 active:scale-95 ${isPast
-                  ? 'bg-red-50 border-red-100 text-red-500 shadow-sm shadow-red-50'
+                className={`cursor-pointer w-[150px] px-2 py-2 mb-1 rounded-lg border-2 flex items-center justify-between gap-1 text-[9px] font-black tracking-widest transition-all hover:-translate-y-0.5 active:scale-95 shadow-md hover:shadow-lg ${isPast
+                  ? 'bg-red-500 border-red-600 text-white shadow-red-500/20'
                   : isACMC
-                    ? 'bg-emerald-50 border-emerald-100 text-emerald-600 shadow-sm'
-                    : 'bg-[#D15616]/5 border-[#D15616]/20 text-[#D15616] shadow-sm'
+                    ? 'bg-emerald-600 border-emerald-700 text-white shadow-emerald-600/20'
+                    : 'bg-[#D15616] border-[#B84A12] text-white shadow-orange-900/20'
                   }`}
               >
-                {isACMC ? `ACMC Service ${nextIdx + 1}` : `Service ${nextIdx + 1}`} • {isPast ? 'PENDING' : 'DUE'}
+                <span>{isACMC ? `ACMC Service ${nextIdx + 1}` : `Service ${nextIdx + 1}`}</span>
+                <span className="bg-white/20 px-1.5 py-0.5 rounded text-[8px]">{isPast ? 'PENDING' : 'DUE'}</span>
               </button>
               <span className={`text-[10px] font-black uppercase ${isPast ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
                 {serviceDate?.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
@@ -698,17 +698,6 @@ const CustomerRow = ({ group, openServiceModal, setDetailsModal, setEditModal, h
             <div className="flex items-center gap-1.5 px-3 py-1 bg-red-50 border border-red-100 rounded-full">
               <span className="h-1 w-1 rounded-full bg-red-500"></span>
               <span className="text-[9px] font-black text-red-600 uppercase tracking-widest">Warranty expired</span>
-            </div>
-          )}
-        </div>
-      </td>
-
-      {/* Reference */}
-      <td className="px-8 py-5 text-center">
-        <div className="flex flex-col gap-0.5 items-center">
-          {cust.orderNo && (
-            <div className="font-black text-gray-600 text-[10px] flex items-center gap-1">
-              <span className="text-gray-300">ORD</span> #{cust.orderNo}
             </div>
           )}
         </div>
