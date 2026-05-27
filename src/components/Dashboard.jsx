@@ -331,7 +331,7 @@ const Dashboard = () => {
       {/* Row 2: Service Forecaster */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <StatCard
-          title="Due Current Month"
+          title="Service Due Current Month"
           value={kpis.dueCurrentMonth}
           sub="This month's schedule"
           themeColor="#ef4444"
@@ -340,7 +340,7 @@ const Dashboard = () => {
           onClick={() => handleCardClick('currentMonth')}
         />
         <StatCard
-          title="Due Next Month"
+          title="Service Due Next Month"
           value={kpis.dueNextMonth}
           sub="Upcoming month's forecast"
           themeColor="#6366f1"
