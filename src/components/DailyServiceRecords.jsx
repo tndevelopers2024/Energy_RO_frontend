@@ -24,6 +24,28 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [viewingEntry, setViewingEntry] = useState(null);
 
+    // Column visibility state
+    const [showColumnDropdown, setShowColumnDropdown] = useState(false);
+    const [visibleColumns, setVisibleColumns] = useState({
+        date: true,
+        engineer: true,
+        complaintNo: true,
+        complaintDate: true,
+        initialStatus: true,
+        customer: true,
+        product: true,
+        visitType: true,
+        status: true,
+        time: true,
+        workDetails: true,
+        charges: true,
+        actions: true
+    });
+
+    const toggleColumn = (key) => {
+        setVisibleColumns(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
         const date = new Date(dateString);
@@ -244,15 +266,75 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500 font-['Plus_Jakarta_Sans']">
             {/* Header & Filter Bar */}
-            <div className="p-8 border-b border-gray-50 bg-gray-50/20 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                    <h3 className="text-2xl font-black text-gray-900 tracking-tight">Daily Service Records</h3>
-                    <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-1 opacity-70">Complete History Log</p>
+            <div className="p-6 border-b border-gray-50 bg-gray-50/20 flex flex-col gap-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h3 className="text-2xl font-black text-gray-900 tracking-tight">Daily Service Records</h3>
+                        <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-1 opacity-70">Complete History Log</p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        {/* Stats Badge */}
+                        <div className="flex items-center gap-2 bg-[#F9783B]/10 px-3 py-1.5 rounded-lg border border-[#F9783B]/5 h-9">
+                            <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] hidden sm:inline">Entries:</span>
+                            <span className="text-sm font-black text-[#F9783B]">{filteredEntries.length}</span>
+                        </div>
+
+                        {/* Columns Toggle */}
+                        <div className="relative">
+                            <button 
+                                onClick={() => setShowColumnDropdown(!showColumnDropdown)}
+                                className="bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 px-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all h-9 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                            >
+                                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                                Columns
+                            </button>
+                            
+                            {showColumnDropdown && (
+                                <>
+                                    <div className="fixed inset-0 z-40" onClick={() => setShowColumnDropdown(false)}></div>
+                                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-2 py-3 overflow-hidden animate-in fade-in zoom-in duration-200">
+                                        <div className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] px-3 pb-2 mb-2 border-b border-gray-50">Toggle Columns</div>
+                                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar flex flex-col gap-1">
+                                            {Object.entries({
+                                                date: 'Date', engineer: 'Service Engineer', complaintNo: 'Complaint No', 
+                                                complaintDate: 'Complaint Date', initialStatus: 'Initial Status', 
+                                                customer: 'Customer Details', product: 'Product', visitType: 'Visit Type', 
+                                                status: 'Status', time: 'Time', workDetails: 'Work Details', 
+                                                charges: 'Charges', actions: 'Actions'
+                                            }).map(([key, label]) => (
+                                                <label key={key} className="flex items-center gap-3 px-3 py-1.5 hover:bg-gray-50 rounded-lg cursor-pointer group transition-colors">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="hidden" 
+                                                        checked={visibleColumns[key]}
+                                                        onChange={() => toggleColumn(key)}
+                                                    />
+                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${visibleColumns[key] ? 'bg-[#F9783B] border-[#F9783B]' : 'border-gray-300 bg-white'}`}>
+                                                        {visibleColumns[key] && <svg viewBox="0 0 24 24" width="10" height="10" stroke="white" strokeWidth="4" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                                                    </div>
+                                                    <span className="text-[11px] font-bold text-gray-700 group-hover:text-gray-900">{label}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        <button 
+                            onClick={handleDownloadCSV}
+                            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-100 px-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all h-9 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-emerald-100/50"
+                        >
+                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="3" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            CSV
+                        </button>
+                    </div>
                 </div>
 
-                <div className="flex flex-col md:flex-row items-end gap-4">
+                <div className="flex flex-col md:flex-row items-end gap-4 w-full">
                     {/* Search Field */}
-                    <div className="flex flex-col gap-1.5 w-full md:w-80">
+                    <div className="flex flex-col gap-1.5 w-full md:flex-1">
                         <label className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Search Customer / Phone</label>
                         <div className="relative">
                             <input
@@ -303,25 +385,6 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
                             </div>
                         </div>
                     </div>
-
-                    {/* Stats Badge */}
-                    <div className="flex flex-col gap-1.5 min-w-[120px]">
-                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Total Entries</label>
-                        <div className="text-lg font-black text-[#F9783B] bg-[#F9783B]/10 px-4 py-2 rounded-xl border border-[#F9783B]/5 uppercase tracking-tighter text-center">
-                            {filteredEntries.length} <span className="text-[11px] font-bold">Logs</span>
-                        </div>
-                    </div>
-                    
-                    {/* Download CSV Button */}
-                    <div className="flex flex-col justify-end">
-                        <button 
-                            onClick={handleDownloadCSV}
-                            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-100 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all h-[42px] flex items-center justify-center gap-2 cursor-pointer shadow-sm shadow-emerald-100/50"
-                        >
-                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="3" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                            Export CSV
-                        </button>
-                    </div>
                 </div>
             </div>
 
@@ -330,19 +393,19 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-gray-50/50 text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] border-b border-gray-100 whitespace-nowrap">
-                            <th className="px-2 py-5 min-w-[100px]">Date</th>
-                            <th className="px-2 py-5 min-w-[120px]">Service Engineer</th>
-                            <th className="px-2 py-5 min-w-[100px]">Complaint No</th>
-                            <th className="px-2 py-5 min-w-[120px]">Complaint Date</th>
-                            <th className="px-2 py-5 min-w-[120px]">Initial Status</th>
-                            <th className="px-2 py-5 min-w-[180px]">Customer Details</th>
-                            <th className="px-2 py-5 min-w-[120px]">Product</th>
-                            <th className="px-2 py-5 min-w-[100px] text-center">Visit Type</th>
-                            <th className="px-2 py-5 min-w-[100px]">Status</th>
-                            <th className="px-2 py-5 min-w-[120px] text-center">Time</th>
-                            <th className="px-2 py-5 min-w-[150px]">Work Details</th>
-                            <th className="px-2 py-5 text-right min-w-[100px]">Charges</th>
-                            <th className="px-2 py-5 min-w-[100px] text-center sticky right-0 bg-gray-50 z-10 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] border-l border-gray-100">Actions</th>
+                            {visibleColumns.date && <th className="px-2 py-5 min-w-[100px]">Date</th>}
+                            {visibleColumns.engineer && <th className="px-2 py-5 min-w-[120px]">Service Engineer</th>}
+                            {visibleColumns.complaintNo && <th className="px-2 py-5 min-w-[100px]">Complaint No</th>}
+                            {visibleColumns.complaintDate && <th className="px-2 py-5 min-w-[120px]">Complaint Date</th>}
+                            {visibleColumns.initialStatus && <th className="px-2 py-5 min-w-[120px]">Initial Status</th>}
+                            {visibleColumns.customer && <th className="px-2 py-5 min-w-[180px]">Customer Details</th>}
+                            {visibleColumns.product && <th className="px-2 py-5 min-w-[120px]">Product</th>}
+                            {visibleColumns.visitType && <th className="px-2 py-5 min-w-[100px] text-center">Visit Type</th>}
+                            {visibleColumns.status && <th className="px-2 py-5 min-w-[100px]">Status</th>}
+                            {visibleColumns.time && <th className="px-2 py-5 min-w-[120px] text-center">Time</th>}
+                            {visibleColumns.workDetails && <th className="px-2 py-5 min-w-[150px]">Work Details</th>}
+                            {visibleColumns.charges && <th className="px-2 py-5 text-right min-w-[100px]">Charges</th>}
+                            {visibleColumns.actions && <th className="px-2 py-5 min-w-[100px] text-center sticky right-0 bg-gray-50 z-10 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] border-l border-gray-100">Actions</th>}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -365,83 +428,109 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
                                 const totalCharges = entry.charges.spares + entry.charges.visit + entry.charges.contracts;
                                 return (
                                     <tr key={`${entry.reportId}-${idx}`} className="hover:bg-gray-50/80 transition-all duration-300 group">
-                                        <td className="px-2 py-5 font-bold text-gray-700 text-xs">
-                                            {formatDate(entry.date)}
-                                        </td>
-                                        <td className="px-2 py-5">
-                                            <p className="text-xs font-black text-[#0c1f3d]">{entry.engineerName}</p>
-                                            <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">{entry.branch}</p>
-                                        </td>
-                                        <td className="px-2 py-5 text-xs font-black text-[#F9783B] whitespace-nowrap">#{entry.complaintNo}</td>
-                                        <td className="px-2 py-5 font-bold text-gray-700 text-xs whitespace-nowrap">
-                                            {entry.dateOfComplain ? new Date(entry.dateOfComplain).toLocaleDateString('en-GB') : '-'}
-                                        </td>
-                                        <td className="px-2 py-5 whitespace-nowrap">
-                                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${entry.initialStatus === 'Completed' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
-                                                {entry.initialStatus || '-'}
-                                            </span>
-                                        </td>
-                                        <td className="px-2 py-5">
-                                            <p className="text-xs font-bold text-gray-800">{entry.customerName || entry.customerDetails}</p>
-                                            {entry.phone && <p className="text-[10px] text-gray-400 font-bold truncate max-w-[180px] mt-0.5"> {entry.phone}</p>}
-                                            {entry.address && <p className="text-[10px] text-gray-400 truncate max-w-[180px] mt-0.5"> {entry.address}</p>}
-                                        </td>
-                                        <td className="px-2 py-5">
-                                            <p className="text-xs font-medium text-gray-600 truncate max-w-[120px]">{entry.product}</p>
-                                        </td>
-                                        <td className="px-2 py-5 text-center">
-                                            <span className="px-2 py-0.5 bg-gray-100 rounded text-[9px] font-black text-gray-500 uppercase">{getFullVisitType(entry.visitType)}</span>
-                                        </td>
-                                        <td className="px-2 py-5">
-                                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${entry.status?.toLowerCase().includes('complete') || entry.status === 'IW' || entry.status === 'IC' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
-                                                {getFullStatus(entry.status)}
-                                            </span>
-                                        </td>
-                                        <td className="px-2 py-5 text-center text-[9px] font-black text-gray-800">
-                                            {entry.timeIn} - {entry.timeOut}
-                                        </td>
-                                        <td className="px-2 py-5">
-                                            <p className="text-[11px] font-medium text-gray-500 line-clamp-2 leading-relaxed">{entry.workDetails}</p>
-                                        </td>
-                                        <td className="px-2 py-5 text-right">
-                                            <span className="text-xs font-black text-green-600">₹{totalCharges}</span>
-                                        </td>
-                                        <td className="px-2 py-5 sticky right-0 bg-white group-hover:bg-gray-50 z-10 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] border-l border-gray-100 transition-colors">
-                                            <div className="flex items-center justify-center gap-2 group-hover:opacity-100 transition-opacity">
-                                                <button 
-                                                    onClick={() => { setViewingEntry(entry); setViewModalOpen(true); }}
-                                                    className="p-2 text-[#F9783B] hover:bg-orange-50 rounded-lg transition-colors cursor-pointer"
-                                                    title="View Full Detail"
-                                                >
-                                                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="3" fill="none">
-                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                                        <circle cx="12" cy="12" r="3"></circle>
-                                                    </svg>
-                                                </button>
-                                                <button 
-                                                    onClick={() => { setEditingEntry(entry); setEditModalOpen(true); }}
-                                                    className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                                                    title="Edit Entry"
-                                                >
-                                                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="3" fill="none">
-                                                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
-                                                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                                    </svg>
-                                                </button>
-                                                <button 
-                                                    onClick={() => { setDeletingEntry(entry); setDeleteModalOpen(true); }}
-                                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                                                    title="Delete Entry"
-                                                >
-                                                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="3" fill="none">
-                                                        <polyline points="3 6 5 6 21 6"></polyline>
-                                                        <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
-                                                        <line x1="10" y1="11" x2="10" y2="17"></line>
-                                                        <line x1="14" y1="11" x2="14" y2="17"></line>
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </td>
+                                        {visibleColumns.date && (
+                                            <td className="px-2 py-5 font-bold text-gray-700 text-xs">
+                                                {formatDate(entry.date)}
+                                            </td>
+                                        )}
+                                        {visibleColumns.engineer && (
+                                            <td className="px-2 py-5">
+                                                <p className="text-xs font-black text-[#0c1f3d]">{entry.engineerName}</p>
+                                                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">{entry.branch}</p>
+                                            </td>
+                                        )}
+                                        {visibleColumns.complaintNo && (
+                                            <td className="px-2 py-5 text-xs font-black text-[#F9783B] whitespace-nowrap">#{entry.complaintNo}</td>
+                                        )}
+                                        {visibleColumns.complaintDate && (
+                                            <td className="px-2 py-5 font-bold text-gray-700 text-xs whitespace-nowrap">
+                                                {entry.dateOfComplain ? new Date(entry.dateOfComplain).toLocaleDateString('en-GB') : '-'}
+                                            </td>
+                                        )}
+                                        {visibleColumns.initialStatus && (
+                                            <td className="px-2 py-5 whitespace-nowrap">
+                                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${entry.initialStatus === 'Completed' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
+                                                    {entry.initialStatus || '-'}
+                                                </span>
+                                            </td>
+                                        )}
+                                        {visibleColumns.customer && (
+                                            <td className="px-2 py-5">
+                                                <p className="text-xs font-bold text-gray-800">{entry.customerName || entry.customerDetails}</p>
+                                                {entry.phone && <p className="text-[10px] text-gray-400 font-bold truncate max-w-[180px] mt-0.5"> {entry.phone}</p>}
+                                                {entry.address && <p className="text-[10px] text-gray-400 truncate max-w-[180px] mt-0.5"> {entry.address}</p>}
+                                            </td>
+                                        )}
+                                        {visibleColumns.product && (
+                                            <td className="px-2 py-5">
+                                                <p className="text-xs font-medium text-gray-600 truncate max-w-[120px]">{entry.product}</p>
+                                            </td>
+                                        )}
+                                        {visibleColumns.visitType && (
+                                            <td className="px-2 py-5 text-center">
+                                                <span className="px-2 py-0.5 bg-gray-100 rounded text-[9px] font-black text-gray-500 uppercase">{getFullVisitType(entry.visitType)}</span>
+                                            </td>
+                                        )}
+                                        {visibleColumns.status && (
+                                            <td className="px-2 py-5">
+                                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${entry.status?.toLowerCase().includes('complete') || entry.status === 'IW' || entry.status === 'IC' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
+                                                    {getFullStatus(entry.status)}
+                                                </span>
+                                            </td>
+                                        )}
+                                        {visibleColumns.time && (
+                                            <td className="px-2 py-5 text-center text-[9px] font-black text-gray-800">
+                                                {entry.timeIn} - {entry.timeOut}
+                                            </td>
+                                        )}
+                                        {visibleColumns.workDetails && (
+                                            <td className="px-2 py-5">
+                                                <p className="text-[11px] font-medium text-gray-500 line-clamp-2 leading-relaxed">{entry.workDetails}</p>
+                                            </td>
+                                        )}
+                                        {visibleColumns.charges && (
+                                            <td className="px-2 py-5 text-right">
+                                                <span className="text-xs font-black text-green-600">₹{totalCharges}</span>
+                                            </td>
+                                        )}
+                                        {visibleColumns.actions && (
+                                            <td className="px-2 py-5 sticky right-0 bg-white group-hover:bg-gray-50 z-10 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] border-l border-gray-100 transition-colors">
+                                                <div className="flex items-center justify-center gap-2 group-hover:opacity-100 transition-opacity">
+                                                    <button 
+                                                        onClick={() => { setViewingEntry(entry); setViewModalOpen(true); }}
+                                                        className="p-2 text-[#F9783B] hover:bg-orange-50 rounded-lg transition-colors cursor-pointer"
+                                                        title="View Full Detail"
+                                                    >
+                                                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="3" fill="none">
+                                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                            <circle cx="12" cy="12" r="3"></circle>
+                                                        </svg>
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => { setEditingEntry(entry); setEditModalOpen(true); }}
+                                                        className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                                        title="Edit Entry"
+                                                    >
+                                                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="3" fill="none">
+                                                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
+                                                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                                        </svg>
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => { setDeletingEntry(entry); setDeleteModalOpen(true); }}
+                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                                        title="Delete Entry"
+                                                    >
+                                                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="3" fill="none">
+                                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                                                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                                                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        )}
                                     </tr>
                                 );
                             })

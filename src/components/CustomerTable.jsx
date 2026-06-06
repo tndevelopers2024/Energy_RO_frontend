@@ -82,7 +82,7 @@ const CustomerTable = () => {
         const oneYearAgo = new Date();
         oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
         filtered = filtered.filter(c => {
-          if (c.isACMC || c.type !== 'Installation' || !c.dateOfInstallationOrService) return false;
+          if (c.isACMC || c.type !== 'Installation' || !c.dateOfInstallationOrService || c.customerType === 'Outside Customer') return false;
           const isCompleted = c.servicesCompleted?.length === 3 && c.servicesCompleted.every(status => status === true);
           return new Date(c.dateOfInstallationOrService) > oneYearAgo && !isCompleted;
         });
@@ -91,7 +91,7 @@ const CustomerTable = () => {
         const oneYearAgo = new Date();
         oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
         filtered = filtered.filter(c => {
-          if (c.isACMC) return false;
+          if (c.isACMC || c.customerType === 'Outside Customer') return false;
           
           if (!c.dateOfInstallationOrService) return false;
           const isCompleted = c.servicesCompleted?.length === 3 && c.servicesCompleted.every(status => status === true);
@@ -112,6 +112,7 @@ const CustomerTable = () => {
         const currentMonth = now.getMonth();
 
         filtered = filtered.filter(cust => {
+          if (cust.customerType === 'Outside Customer' && !cust.isACMC) return false;
           const isACMC = cust.isACMC;
           const services = isACMC ? cust.acmcServicesCompleted : cust.servicesCompleted;
           const nextIdx = services?.findIndex(status => !status);
@@ -131,6 +132,7 @@ const CustomerTable = () => {
         const nextMonthVal = nextMonthDate.getMonth();
 
         filtered = filtered.filter(cust => {
+          if (cust.customerType === 'Outside Customer' && !cust.isACMC) return false;
           const isACMC = cust.isACMC;
           const services = isACMC ? cust.acmcServicesCompleted : cust.servicesCompleted;
           const nextIdx = services?.findIndex(status => !status);
@@ -614,9 +616,10 @@ const CustomerRow = ({ group, openServiceModal, setDetailsModal, setEditModal, h
   };
 
   const isACMC = cust.isACMC;
+  const isOutside = cust.customerType === 'Outside Customer';
   const services = isACMC ? cust.acmcServicesCompleted : cust.servicesCompleted;
   const nextIdx = services?.findIndex(status => !status);
-  const isAllDone = nextIdx === -1;
+  const isAllDone = isOutside && !isACMC ? true : nextIdx === -1;
 
   const baseDate = isACMC ? cust.acmcStartDate : cust.dateOfInstallationOrService;
   const serviceDates = isACMC ? calculateAcmcDates(baseDate) : calculateServiceDates(baseDate);
@@ -632,13 +635,21 @@ const CustomerRow = ({ group, openServiceModal, setDetailsModal, setEditModal, h
     <tr className="hover:bg-[#D15616]/5 transition-all duration-300 group">
       {/* Customer Name */}
       <td className="px-8 py-5">
-        <div className="font-bold text-gray-900 text-sm flex items-center gap-2">
-          {cust.userName}
-          <span className="h-1 w-1 rounded-full bg-[#D15616] opacity-0 group-hover:opacity-100 transition-opacity"></span>
-          {group.records.length > 1 && (
-            <span className="text-[8px] font-black bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded uppercase tracking-tighter">
-              {group.records.length} ROs
-            </span>
+        <div className="flex flex-col gap-1.5 items-start">
+          <div 
+            onClick={() => setDetailsModal({ isOpen: true, customer: cust })}
+            className="font-bold text-gray-900 text-sm flex items-center gap-2 cursor-pointer hover:text-[#D15616] hover:underline transition-all"
+          >
+            {cust.userName}
+            <span className="h-1 w-1 rounded-full bg-[#D15616] opacity-0 group-hover:opacity-100 transition-opacity"></span>
+            {group.records.length > 1 && (
+              <span className="text-[8px] font-black bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                {group.records.length} ROs
+              </span>
+            )}
+          </div>
+          {isOutside && (
+            <span className="text-[8px] font-black uppercase tracking-[0.2em] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-md border border-gray-200">Outside Customer</span>
           )}
         </div>
       </td>
@@ -702,7 +713,17 @@ const CustomerRow = ({ group, openServiceModal, setDetailsModal, setEditModal, h
       {/* Next Service Due */}
       <td className="px-8 py-5">
         <div className="flex justify-center">
-          {!isAllDone ? (
+          {isOutside && !isACMC ? (
+            <div className="flex flex-col items-center">
+              <button 
+                onClick={() => setDetailsModal({ isOpen: true, customer: cust })}
+                className="px-3 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-md text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all shadow-sm flex items-center gap-1.5"
+              >
+                <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="3" fill="none"><path d="M12 5v14M5 12h14"></path></svg>
+                Activate ACMC
+              </button>
+            </div>
+          ) : !isAllDone ? (
             <div className="flex flex-col items-center">
               <button
                 onClick={() => openServiceModal(cust._id, cust.userName, nextIdx, isACMC)}

@@ -44,6 +44,7 @@ const CustomerForm = () => {
 
   const [formData, setFormData] = useState({
     userName: '',
+    customerType: 'Own Customer',
     mobileNumber: '',
     alternateMobileNumber: '',
     email: '',
@@ -112,6 +113,7 @@ const CustomerForm = () => {
     setFormData(prev => ({
       ...prev,
       userName: customer.userName || '',
+      customerType: customer.customerType || 'Own Customer',
       mobileNumber: customer.mobileNumber || '',
       alternateMobileNumber: customer.alternateMobileNumber || '',
       email: customer.email || '',
@@ -132,6 +134,7 @@ const CustomerForm = () => {
   const resetForm = () => {
     setFormData({
       userName: '',
+      customerType: 'Own Customer',
       mobileNumber: '',
       alternateMobileNumber: '',
       email: '',
@@ -260,6 +263,42 @@ const CustomerForm = () => {
             </div>
             <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest">Customer Information</h3>
           </div>
+          
+          <div className="flex flex-col gap-3">
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Customer Origin</label>
+            <div className="flex items-center gap-6">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <div className="relative flex items-center justify-center">
+                  <input
+                    type="radio"
+                    name="customerType"
+                    value="Own Customer"
+                    checked={formData.customerType === 'Own Customer'}
+                    onChange={handleChange}
+                    className="appearance-none w-5 h-5 border-2 border-gray-300 rounded-full checked:border-[#D15616] transition-colors peer"
+                  />
+                  <div className="absolute w-2.5 h-2.5 bg-[#D15616] rounded-full opacity-0 peer-checked:opacity-100 transition-opacity"></div>
+                </div>
+                <span className="text-sm font-bold text-gray-700 group-hover:text-gray-900 transition-colors">Own Customer (Bought with us)</span>
+              </label>
+              
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <div className="relative flex items-center justify-center">
+                  <input
+                    type="radio"
+                    name="customerType"
+                    value="Outside Customer"
+                    checked={formData.customerType === 'Outside Customer'}
+                    onChange={handleChange}
+                    className="appearance-none w-5 h-5 border-2 border-gray-300 rounded-full checked:border-[#D15616] transition-colors peer"
+                  />
+                  <div className="absolute w-2.5 h-2.5 bg-[#D15616] rounded-full opacity-0 peer-checked:opacity-100 transition-opacity"></div>
+                </div>
+                <span className="text-sm font-bold text-gray-700 group-hover:text-gray-900 transition-colors">Outside Customer (Bought elsewhere)</span>
+              </label>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="relative">
             <InputField
@@ -376,18 +415,20 @@ const CustomerForm = () => {
             onChange={handleChange}
             required
           />
-          <DateRangePicker
-            label="Installation Date"
-            isSingle={true}
-            required={true}
-            startDate={formData.dateOfInstallationOrService}
-            onRangeSelect={(start) => {
-              setFormData(prev => ({
-                ...prev,
-                dateOfInstallationOrService: start ? start.toISOString().split('T')[0] : ''
-              }));
-            }}
-          />
+          {formData.customerType !== 'Outside Customer' && (
+            <DateRangePicker
+              label="Installation Date"
+              isSingle={true}
+              required={true}
+              startDate={formData.dateOfInstallationOrService}
+              onRangeSelect={(start) => {
+                setFormData(prev => ({
+                  ...prev,
+                  dateOfInstallationOrService: start ? start.toISOString().split('T')[0] : ''
+                }));
+              }}
+            />
+          )}
           <InputField
             label="Order ID"
             name="orderNo"

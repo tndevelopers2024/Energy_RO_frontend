@@ -81,7 +81,10 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
   const serviceDates = calculateServiceDates(customer.dateOfInstallationOrService);
   const acmcDates = calculateAcmcDates(customer.acmcStartDate);
 
-  const isWarrantyExpired = !customer.isACMC && serviceDates[2] && new Date() > serviceDates[2];
+  const isWarrantyExpired = !customer.isACMC && (
+    customer.customerType === 'Outside Customer' || 
+    (serviceDates[2] && new Date() > serviceDates[2])
+  );
   const isAcmcCompletedOrExpired = customer.isACMC && (
     (new Date() > new Date(customer.acmcExpiryDate)) || 
     (customer.acmcServicesCompleted?.length === 3 && customer.acmcServicesCompleted.every(status => status === true))
@@ -220,6 +223,55 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
     </div>
   );
 
+  const renderAcmcAccordion = (cycleName, cycleData, isOpenDefault = false) => {
+    const cycleDates = calculateAcmcDates(cycleData.acmcStartDate);
+    const completedCount = cycleData.acmcServicesCompleted?.filter(Boolean).length || 0;
+
+    return (
+      <details 
+        key={cycleData.acmcStartDate} 
+        className="group border border-gray-100 rounded-2xl bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden"
+        open={isOpenDefault}
+      >
+        <summary className="flex items-center justify-between p-4 bg-gray-50/50 cursor-pointer hover:bg-gray-50 transition-colors rounded-2xl outline-none">
+          <div className="flex items-center gap-3">
+            <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+            <h4 className="text-xs font-black text-emerald-600 uppercase tracking-[0.2em]">{cycleName}</h4>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest hidden sm:block">
+              Ends: {new Date(cycleData.acmcExpiryDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+            </div>
+            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+              {completedCount} of 3 Complete
+            </span>
+            <svg 
+              className="w-4 h-4 text-gray-400 transition-transform duration-300 group-open:rotate-180" 
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </div>
+        </summary>
+        
+        <div className="p-6 border-t border-gray-100">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[0, 1, 2].map((idx) => (
+              <ServiceCard
+                key={idx}
+                idx={idx}
+                isCompleted={cycleData.acmcServicesCompleted?.[idx]}
+                report={cycleData.acmcServiceReports?.[idx]}
+                date={cycleDates[idx]}
+                isACMC={true}
+              />
+            ))}
+          </div>
+        </div>
+      </details>
+    );
+  };
+
   return createPortal(
     <>
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 overflow-y-auto font-['Plus_Jakarta_Sans']">
@@ -296,13 +348,16 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
                 )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <DetailItem label="Customer Origin" value={customer.customerType || 'Own Customer'} />
                 <DetailItem label="Mobile Number" value={customer.mobileNumber} />
                 {customer.alternateMobileNumber && <DetailItem label="Alternate Mobile" value={customer.alternateMobileNumber} />}
                 <DetailItem label="Email Address" value={customer.email} />
                 <DetailItem label="Installation Address" value={customer.address} fullWidth />
                 <DetailItem label="Product & Model" value={customer.productNameAndModel} />
                 <DetailItem label="Order ID" value={customer.orderNo ? `ORD #${customer.orderNo}` : ''} />
-                <DetailItem label="Installation Date" value={customer.dateOfInstallationOrService ? new Date(customer.dateOfInstallationOrService).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : 'Pending'} />
+                {customer.customerType !== 'Outside Customer' && (
+                  <DetailItem label="Installation Date" value={customer.dateOfInstallationOrService ? new Date(customer.dateOfInstallationOrService).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : 'Pending'} />
+                )}
                 <DetailItem label="Card Number" value={customer.cardNumber} />
                 {customer.unitSerialNumber && <DetailItem label="Unit Serial No" value={customer.unitSerialNumber} />}
                 {customer.occupation && <DetailItem label="Occupation" value={customer.occupation} />}
@@ -322,47 +377,16 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
             </div>
 
             {/* Section 2: Warranty Service History */}
-            <div className="space-y-6">
-              <div className="flex items-center justify-between pb-2 border-b border-gray-50">
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-gray-400"></span>
-                  <h4 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em]">Warranty Cycle (Year 1)</h4>
-                </div>
-                <span className="text-[10px] font-black text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
-                  {customer.servicesCompleted?.filter(v => v).length} of 3 Complete
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[0, 1, 2].map((idx) => (
-                  <ServiceCard
-                    key={idx}
-                    idx={idx}
-                    isCompleted={customer.servicesCompleted?.[idx]}
-                    report={customer.serviceReports?.[idx]}
-                    date={serviceDates[idx]}
-                    isACMC={false}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Section 3: ACMC History (If Active) */}
-            {customer.isACMC && (
-              <div className="space-y-6 animate-in slide-in-from-bottom duration-500">
+            {customer.customerType !== 'Outside Customer' && (
+              <div className="space-y-6">
                 <div className="flex items-center justify-between pb-2 border-b border-gray-50">
                   <div className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                    <h4 className="text-xs font-black text-emerald-600 uppercase tracking-[0.2em]">ACMC Cycle (Year 2+)</h4>
+                    <span className="h-1.5 w-1.5 rounded-full bg-gray-400"></span>
+                    <h4 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em]">Warranty Cycle (Year 1)</h4>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                      Ends: {new Date(customer.acmcExpiryDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </div>
-                    <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
-                      {customer.acmcServicesCompleted?.filter(v => v).length} of 3 Complete
-                    </span>
-                  </div>
+                  <span className="text-[10px] font-black text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
+                    {customer.servicesCompleted?.filter(v => v).length} of 3 Complete
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -370,13 +394,44 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
                     <ServiceCard
                       key={idx}
                       idx={idx}
-                      isCompleted={customer.acmcServicesCompleted?.[idx]}
-                      report={customer.acmcServiceReports?.[idx]}
-                      date={acmcDates[idx]}
-                      isACMC={true}
+                      isCompleted={customer.servicesCompleted?.[idx]}
+                      report={customer.serviceReports?.[idx]}
+                      date={serviceDates[idx]}
+                      isACMC={false}
                     />
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Section 3: ACMC History */}
+            {(customer.acmcHistory?.length > 0 || customer.isACMC) && (
+              <div className="space-y-4 animate-in slide-in-from-bottom duration-500">
+                <div className="pb-2 border-b border-gray-50 flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                  <h4 className="text-xs font-black text-emerald-600 uppercase tracking-[0.2em]">ACMC History</h4>
+                </div>
+
+                {customer.acmcHistory?.map((cycle, index) => {
+                  const baseYear = customer.customerType === 'Outside Customer' ? 1 : 2;
+                  return renderAcmcAccordion(`ACMC Cycle (Year ${baseYear + index})`, cycle, false);
+                })}
+
+                {customer.isACMC && (
+                  renderAcmcAccordion(
+                    `ACMC Cycle (Year ${
+                      (customer.customerType === 'Outside Customer' ? 1 : 2) + 
+                      (customer.acmcHistory?.length || 0)
+                    })`, 
+                    {
+                      acmcStartDate: customer.acmcStartDate,
+                      acmcExpiryDate: customer.acmcExpiryDate,
+                      acmcServicesCompleted: customer.acmcServicesCompleted,
+                      acmcServiceReports: customer.acmcServiceReports
+                    }, 
+                    true // Open by default
+                  )
+                )}
               </div>
             )}
 
