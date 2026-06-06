@@ -5,12 +5,13 @@ import ServiceEntryModal from './ServiceEntryModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import DailyServiceDetailModal from './DailyServiceDetailModal';
 import Pagination from './Pagination';
+import DateRangePicker from './DateRangePicker';
 
 const DailyServiceRecords = ({ refreshTrigger }) => {
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedEngineer, setSelectedEngineer] = useState('all');
-    const [selectedMonth, setSelectedMonth] = useState('all');
+    const [dateRange, setDateRange] = useState({ start: null, end: null });
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -31,12 +32,6 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
         return `${day}/${month}/${year}`;
-    };
-
-    const formatMonthDisplay = (monthStr) => {
-        const [year, month] = monthStr.split('-');
-        const date = new Date(year, parseInt(month) - 1, 1);
-        return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     };
 
     const getFullVisitType = (code) => {
@@ -114,22 +109,7 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
         return Array.from(uniqueNames).sort();
     }, [searchedEntries]);
 
-    // 2.5 Derive available months from ALL entries
-    const availableMonths = useMemo(() => {
-        const months = new Set();
-        allEntries.forEach(entry => {
-            if (entry.date) {
-                const d = new Date(entry.date);
-                if (!isNaN(d.getTime())) {
-                    const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                    months.add(mKey);
-                }
-            }
-        });
-        return Array.from(months).sort().reverse();
-    }, [allEntries]);
-
-    // 3. Finally, filter the searched results by the selected engineer and month
+    // 3. Finally, filter the searched results by the selected engineer and date range
     const filteredEntries = useMemo(() => {
         let result = searchedEntries;
         
@@ -137,18 +117,26 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
             result = result.filter(entry => entry.engineerName === selectedEngineer);
         }
         
-        if (selectedMonth !== 'all') {
+        if (dateRange.start) {
             result = result.filter(entry => {
                 if (!entry.date) return false;
                 const d = new Date(entry.date);
                 if (isNaN(d.getTime())) return false;
-                const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                return mKey === selectedMonth;
+                
+                const entryDate = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+                const start = new Date(dateRange.start.getFullYear(), dateRange.start.getMonth(), dateRange.start.getDate()).getTime();
+                
+                if (dateRange.end) {
+                    const end = new Date(dateRange.end.getFullYear(), dateRange.end.getMonth(), dateRange.end.getDate()).getTime();
+                    return entryDate >= start && entryDate <= end;
+                } else {
+                    return entryDate === start;
+                }
             });
         }
         
         return result;
-    }, [searchedEntries, selectedEngineer, selectedMonth]);
+    }, [searchedEntries, selectedEngineer, dateRange]);
 
     // 4. Pagination logic
     const totalItems = filteredEntries.length;
@@ -156,7 +144,7 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, selectedEngineer, selectedMonth]);
+    }, [searchTerm, selectedEngineer, dateRange]);
 
     const pagedEntries = useMemo(() => {
         const start = (currentPage - 1) * itemsPerPage;
@@ -283,26 +271,15 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
                         </div>
                     </div>
 
-                    {/* Month Filter Dropdown */}
-                    <div className="flex flex-col gap-1.5 w-full md:w-48">
-                        <label className="text-[9px] font-black text-[#F9783B] uppercase tracking-[0.2em] ml-1">Filter by Month</label>
-                        <div className="relative group">
-                            <select
-                                value={selectedMonth}
-                                onChange={(e) => setSelectedMonth(e.target.value)}
-                                className="w-full bg-white border border-gray-100 rounded-xl pl-4 pr-10 py-3 text-xs font-bold text-gray-800 focus:outline-none focus:border-[#F9783B] focus:ring-4 focus:ring-[#F9783B]/5 transition-all outline-none appearance-none cursor-pointer"
-                            >
-                                <option value="all">All Months</option>
-                                {availableMonths.map((m) => (
-                                    <option key={m} value={m}>{formatMonthDisplay(m)}</option>
-                                ))}
-                            </select>
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="3" fill="none">
-                                    <path d="M6 9l6 6 6-6"></path>
-                                </svg>
-                            </div>
-                        </div>
+                    {/* Date Filter */}
+                    <div className="flex flex-col gap-1.5 w-full md:w-64">
+                        <label className="text-[9px] font-black text-[#F9783B] uppercase tracking-[0.2em] ml-1">Filter by Date</label>
+                        <DateRangePicker 
+                            startDate={dateRange.start}
+                            endDate={dateRange.end}
+                            isSingle={false}
+                            onRangeSelect={(start, end) => setDateRange({ start, end })}
+                        />
                     </div>
 
                     {/* Engineer Filter Dropdown */}
