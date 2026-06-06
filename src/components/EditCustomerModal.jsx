@@ -7,6 +7,7 @@ const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }) => {
   const [formData, setFormData] = useState({
     userName: '',
     mobileNumber: '',
+    alternateMobileNumber: '',
     address: '',
     doorNo: '',
     street: '',
@@ -32,6 +33,7 @@ const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }) => {
       setFormData({
         userName: customer.userName || '',
         mobileNumber: customer.mobileNumber || '',
+        alternateMobileNumber: customer.alternateMobileNumber || '',
         address: customer.address || '',
         doorNo: customer.doorNo || '',
         street: customer.street || '',
@@ -118,6 +120,17 @@ const EditCustomerModal = ({ isOpen, customer, onClose, onUpdate }) => {
                 required
                 value={formData.mobileNumber}
                 onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
+                className="w-full px-4 py-3 rounded-md border border-gray-200 focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none font-bold text-gray-800 text-sm"
+              />
+            </div>
+
+            {/* Alternate Mobile Number */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Alternate Mobile No</label>
+              <input
+                type="text"
+                value={formData.alternateMobileNumber}
+                onChange={(e) => setFormData({ ...formData, alternateMobileNumber: e.target.value })}
                 className="w-full px-4 py-3 rounded-md border border-gray-200 focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none font-bold text-gray-800 text-sm"
               />
             </div>
