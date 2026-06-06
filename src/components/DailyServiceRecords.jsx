@@ -10,6 +10,7 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedEngineer, setSelectedEngineer] = useState('all');
+    const [selectedMonth, setSelectedMonth] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -30,6 +31,12 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
         return `${day}/${month}/${year}`;
+    };
+
+    const formatMonthDisplay = (monthStr) => {
+        const [year, month] = monthStr.split('-');
+        const date = new Date(year, parseInt(month) - 1, 1);
+        return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     };
 
     const getFullVisitType = (code) => {
@@ -107,11 +114,41 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
         return Array.from(uniqueNames).sort();
     }, [searchedEntries]);
 
-    // 3. Finally, filter the searched results by the selected engineer
+    // 2.5 Derive available months from ALL entries
+    const availableMonths = useMemo(() => {
+        const months = new Set();
+        allEntries.forEach(entry => {
+            if (entry.date) {
+                const d = new Date(entry.date);
+                if (!isNaN(d.getTime())) {
+                    const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    months.add(mKey);
+                }
+            }
+        });
+        return Array.from(months).sort().reverse();
+    }, [allEntries]);
+
+    // 3. Finally, filter the searched results by the selected engineer and month
     const filteredEntries = useMemo(() => {
-        if (selectedEngineer === 'all') return searchedEntries;
-        return searchedEntries.filter(entry => entry.engineerName === selectedEngineer);
-    }, [searchedEntries, selectedEngineer]);
+        let result = searchedEntries;
+        
+        if (selectedEngineer !== 'all') {
+            result = result.filter(entry => entry.engineerName === selectedEngineer);
+        }
+        
+        if (selectedMonth !== 'all') {
+            result = result.filter(entry => {
+                if (!entry.date) return false;
+                const d = new Date(entry.date);
+                if (isNaN(d.getTime())) return false;
+                const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                return mKey === selectedMonth;
+            });
+        }
+        
+        return result;
+    }, [searchedEntries, selectedEngineer, selectedMonth]);
 
     // 4. Pagination logic
     const totalItems = filteredEntries.length;
@@ -119,7 +156,7 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, selectedEngineer]);
+    }, [searchTerm, selectedEngineer, selectedMonth]);
 
     const pagedEntries = useMemo(() => {
         const start = (currentPage - 1) * itemsPerPage;
@@ -155,7 +192,7 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
         }
 
         const headers = [
-            'Date', 'Service Engineer', 'Branch', 'Complaint No', 
+            'Date', 'Service Engineer', 'Branch', 'Complaint No', 'Complaint Date', 'Initial Status',
             'Customer Name', 'Phone', 'Address', 'Product', 
             'Visit Type', 'Status', 'Time In', 'Time Out', 
             'Work Details', 'Spares Charges', 'Visit Charges', 'Contract Charges', 'Total Charges'
@@ -174,6 +211,8 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
                 entry.engineerName,
                 entry.branch || '',
                 entry.complaintNo || '',
+                entry.dateOfComplain ? new Date(entry.dateOfComplain).toLocaleDateString('en-GB') : '',
+                entry.initialStatus || '',
                 customerName,
                 entry.phone || '',
                 address,
@@ -244,8 +283,30 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
                         </div>
                     </div>
 
+                    {/* Month Filter Dropdown */}
+                    <div className="flex flex-col gap-1.5 w-full md:w-48">
+                        <label className="text-[9px] font-black text-[#F9783B] uppercase tracking-[0.2em] ml-1">Filter by Month</label>
+                        <div className="relative group">
+                            <select
+                                value={selectedMonth}
+                                onChange={(e) => setSelectedMonth(e.target.value)}
+                                className="w-full bg-white border border-gray-100 rounded-xl pl-4 pr-10 py-3 text-xs font-bold text-gray-800 focus:outline-none focus:border-[#F9783B] focus:ring-4 focus:ring-[#F9783B]/5 transition-all outline-none appearance-none cursor-pointer"
+                            >
+                                <option value="all">All Months</option>
+                                {availableMonths.map((m) => (
+                                    <option key={m} value={m}>{formatMonthDisplay(m)}</option>
+                                ))}
+                            </select>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="3" fill="none">
+                                    <path d="M6 9l6 6 6-6"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Engineer Filter Dropdown */}
-                    <div className="flex flex-col gap-1.5 w-full md:w-64">
+                    <div className="flex flex-col gap-1.5 w-full md:w-56">
                         <label className="text-[9px] font-black text-[#F9783B] uppercase tracking-[0.2em] ml-1">Filter by Engineer</label>
                         <div className="relative group">
                             <select
@@ -291,24 +352,26 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
             <div className="overflow-x-auto px-2">
                 <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr className="bg-gray-50/50 text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] border-b border-gray-100">
-                            <th className="px-2 py-5 w-[10%]">Date</th>
-                            <th className="px-2 py-5 w-[10%]">Service Engineer</th>
-                            <th className="px-2 py-5 w-[10%]">Complaint No</th>
-                            <th className="px-2 py-5 w-[15%]">Customer Details</th>
-                            <th className="px-2 py-5 w-[10%]">Product</th>
-                            <th className="px-2 py-5 w-[10%] text-center">Visit Type</th>
-                            <th className="px-2 py-5 w-[8%]">Status</th>
-                            <th className="px-2 py-5 w-[10%] text-center">Time</th>
-                            <th className="px-2 py-5 w-[12%]">Work Details</th>
-                            <th className="px-2 py-5 text-right w-[8%]">Charges</th>
-                            <th className="px-2 py-5 w-[5%] text-center">Actions</th>
+                        <tr className="bg-gray-50/50 text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] border-b border-gray-100 whitespace-nowrap">
+                            <th className="px-2 py-5 min-w-[100px]">Date</th>
+                            <th className="px-2 py-5 min-w-[120px]">Service Engineer</th>
+                            <th className="px-2 py-5 min-w-[100px]">Complaint No</th>
+                            <th className="px-2 py-5 min-w-[120px]">Complaint Date</th>
+                            <th className="px-2 py-5 min-w-[120px]">Initial Status</th>
+                            <th className="px-2 py-5 min-w-[180px]">Customer Details</th>
+                            <th className="px-2 py-5 min-w-[120px]">Product</th>
+                            <th className="px-2 py-5 min-w-[100px] text-center">Visit Type</th>
+                            <th className="px-2 py-5 min-w-[100px]">Status</th>
+                            <th className="px-2 py-5 min-w-[120px] text-center">Time</th>
+                            <th className="px-2 py-5 min-w-[150px]">Work Details</th>
+                            <th className="px-2 py-5 text-right min-w-[100px]">Charges</th>
+                            <th className="px-2 py-5 min-w-[100px] text-center sticky right-0 bg-gray-50 z-10 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] border-l border-gray-100">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                         {filteredEntries.length === 0 ? (
                             <tr>
-                                <td colSpan="11" className="px-8 py-24 text-center opacity-40">
+                                <td colSpan="13" className="px-8 py-24 text-center opacity-40">
                                     <div className="flex flex-col items-center gap-4">
                                         <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" strokeWidth="1" fill="none">
                                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -332,7 +395,15 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
                                             <p className="text-xs font-black text-[#0c1f3d]">{entry.engineerName}</p>
                                             <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">{entry.branch}</p>
                                         </td>
-                                        <td className="px-2 py-5 text-xs font-black text-[#F9783B]">#{entry.complaintNo}</td>
+                                        <td className="px-2 py-5 text-xs font-black text-[#F9783B] whitespace-nowrap">#{entry.complaintNo}</td>
+                                        <td className="px-2 py-5 font-bold text-gray-700 text-xs whitespace-nowrap">
+                                            {entry.dateOfComplain ? new Date(entry.dateOfComplain).toLocaleDateString('en-GB') : '-'}
+                                        </td>
+                                        <td className="px-2 py-5 whitespace-nowrap">
+                                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${entry.initialStatus === 'Completed' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
+                                                {entry.initialStatus || '-'}
+                                            </span>
+                                        </td>
                                         <td className="px-2 py-5">
                                             <p className="text-xs font-bold text-gray-800">{entry.customerName || entry.customerDetails}</p>
                                             {entry.phone && <p className="text-[10px] text-gray-400 font-bold truncate max-w-[180px] mt-0.5"> {entry.phone}</p>}
@@ -358,7 +429,7 @@ const DailyServiceRecords = ({ refreshTrigger }) => {
                                         <td className="px-2 py-5 text-right">
                                             <span className="text-xs font-black text-green-600">₹{totalCharges}</span>
                                         </td>
-                                        <td className="px-2 py-5">
+                                        <td className="px-2 py-5 sticky right-0 bg-white group-hover:bg-gray-50 z-10 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] border-l border-gray-100 transition-colors">
                                             <div className="flex items-center justify-center gap-2 group-hover:opacity-100 transition-opacity">
                                                 <button 
                                                     onClick={() => { setViewingEntry(entry); setViewModalOpen(true); }}

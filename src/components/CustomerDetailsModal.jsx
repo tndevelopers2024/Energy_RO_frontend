@@ -15,24 +15,43 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
   const [loadingComplaints, setLoadingComplaints] = useState(true);
 
   useEffect(() => {
-    const fetchComplaints = async () => {
+    const fetchHistory = async () => {
       if (!customer?.mobileNumber) return;
       setLoadingComplaints(true);
       try {
-        const res = await fetch(`${API_BASE_URL}/complaints/customer/${customer.mobileNumber}`);
-        const data = await res.json();
-        if (data.success) {
-          setCustomerComplaints(data.data);
+        const [complaintsRes, dailyRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/complaints/customer/${customer.mobileNumber}`),
+          fetch(`${API_BASE_URL}/daily-service/customer/${customer.mobileNumber}`)
+        ]);
+        const complaintsData = await complaintsRes.json();
+        const dailyData = await dailyRes.json();
+        
+        let combined = [];
+        
+        if (complaintsData.success) {
+          combined = [...combined, ...complaintsData.data.map(c => ({ ...c, type: 'complaint' }))];
         }
+        
+        if (dailyData.success) {
+          combined = [...combined, ...dailyData.data.map(d => ({ ...d, type: 'service' }))];
+        }
+        
+        combined.sort((a, b) => {
+          const dateA = a.type === 'complaint' ? new Date(a.date) : new Date(a.entry.dateOfComplain || a.date);
+          const dateB = b.type === 'complaint' ? new Date(b.date) : new Date(b.entry.dateOfComplain || b.date);
+          return dateB - dateA;
+        });
+
+        setCustomerComplaints(combined);
       } catch (error) {
-        console.error("Failed to fetch complaints", error);
+        console.error("Failed to fetch history", error);
       } finally {
         setLoadingComplaints(false);
       }
     };
     
     if (isOpen) {
-      fetchComplaints();
+      fetchHistory();
     }
   }, [customer?.mobileNumber, isOpen]);
 
@@ -214,8 +233,11 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
               <div>
                 <div className="flex items-center gap-3">
                   <h3 className="text-2xl font-black text-gray-900 tracking-tight">{customer.userName}</h3>
-                  {customer.isACMC && (
+                  {customer.isACMC && !isAcmcCompletedOrExpired && (
                     <span className="bg-emerald-600 text-white text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-[0.2em] shadow-sm animate-pulse">ACMC Active</span>
+                  )}
+                  {customer.isACMC && isAcmcCompletedOrExpired && (
+                    <span className="bg-red-500 text-white text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-[0.2em] shadow-sm">ACMC Expired</span>
                   )}
                 </div>
                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
@@ -275,6 +297,7 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <DetailItem label="Mobile Number" value={customer.mobileNumber} />
+                {customer.alternateMobileNumber && <DetailItem label="Alternate Mobile" value={customer.alternateMobileNumber} />}
                 <DetailItem label="Email Address" value={customer.email} />
                 <DetailItem label="Installation Address" value={customer.address} fullWidth />
                 <DetailItem label="Product & Model" value={customer.productNameAndModel} />
@@ -362,10 +385,10 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
               <div className="flex items-center justify-between pb-2 border-b border-gray-50">
                 <div className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
-                  <h4 className="text-xs font-black text-blue-600 uppercase tracking-[0.2em]">Complaint History</h4>
+                  <h4 className="text-xs font-black text-blue-600 uppercase tracking-[0.2em]">Service & Complaint History</h4>
                 </div>
                 <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-                  {customerComplaints.length} Total Complaints
+                  {customerComplaints.length} Records
                 </span>
               </div>
 
@@ -377,49 +400,95 @@ const CustomerDetailsModal = ({ isOpen, onClose, customer, onEditService }) => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {customerComplaints.map((complaint) => (
-                    <div key={complaint._id} className="p-4 rounded-xl border border-gray-100 bg-white shadow-sm flex flex-col md:flex-row md:items-start gap-4 hover:border-blue-200 transition-colors">
-                      <div className="flex-shrink-0 flex flex-col items-center">
-                        <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-xs ${
-                          complaint.status === 'Fixed' ? 'bg-emerald-100 text-emerald-600' :
-                          complaint.status === 'Process' ? 'bg-blue-100 text-blue-600' :
-                          'bg-red-100 text-red-600'
-                        }`}>
-                          {complaint.status === 'Fixed' ? (
-                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="3" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                          ) : complaint.status === 'Process' ? (
-                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                          ) : (
-                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                          )}
-                        </div>
-                        <div className="h-full w-px bg-gray-100 my-2 md:block hidden min-h-[40px]"></div>
-                      </div>
-                      
-                      <div className="flex-1 space-y-2">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{new Date(complaint.date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                            <h5 className="text-sm font-bold text-gray-800 mt-1 whitespace-pre-line">{complaint.complaintDetails}</h5>
+                  {customerComplaints.map((item) => {
+                    if (item.type === 'complaint') {
+                      return (
+                        <div key={item._id} className="p-4 rounded-xl border border-gray-100 bg-white shadow-sm flex flex-col md:flex-row md:items-start gap-4 hover:border-blue-200 transition-colors">
+                          <div className="flex-shrink-0 flex flex-col items-center">
+                            <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-xs ${
+                              item.status === 'Fixed' ? 'bg-emerald-100 text-emerald-600' :
+                              item.status === 'Process' ? 'bg-blue-100 text-blue-600' :
+                              'bg-red-100 text-red-600'
+                            }`}>
+                              {item.status === 'Fixed' ? (
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="3" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                              ) : item.status === 'Process' ? (
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                              ) : (
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                              )}
+                            </div>
+                            <div className="h-full w-px bg-gray-100 my-2 md:block hidden min-h-[40px]"></div>
                           </div>
-                          <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md ml-4 shrink-0 ${
-                            complaint.status === 'Fixed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                            complaint.status === 'Process' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
-                            'bg-red-50 text-red-600 border border-red-100'
-                          }`}>
-                            {complaint.status}
-                          </span>
-                        </div>
-                        
-                        {complaint.remarks && (
-                          <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Office Remarks</p>
-                            <p className="text-xs font-semibold text-gray-600 whitespace-pre-line">{complaint.remarks}</p>
+                          
+                          <div className="flex-1 space-y-2">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{new Date(item.date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                                <h5 className="text-sm font-bold text-gray-800 mt-1 whitespace-pre-line">{item.complaintDetails}</h5>
+                              </div>
+                              <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md ml-4 shrink-0 ${
+                                item.status === 'Fixed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                                item.status === 'Process' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
+                                'bg-red-50 text-red-600 border border-red-100'
+                              }`}>
+                                {item.status}
+                              </span>
+                            </div>
+                            
+                            {item.remarks && (
+                              <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Office Remarks</p>
+                                <p className="text-xs font-semibold text-gray-600 whitespace-pre-line">{item.remarks}</p>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div key={item._id} className="p-4 rounded-xl border border-gray-100 bg-orange-50/20 shadow-sm flex flex-col md:flex-row md:items-start gap-4 hover:border-orange-200 transition-colors">
+                          <div className="flex-shrink-0 flex flex-col items-center">
+                            <div className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-xs bg-orange-100 text-[#D15616]">
+                              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                            </div>
+                            <div className="h-full w-px bg-gray-100 my-2 md:block hidden min-h-[40px]"></div>
+                          </div>
+                          
+                          <div className="flex-1 space-y-2">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                  {new Date(item.entry.dateOfComplain || item.date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                                  <span className="h-1 w-1 bg-gray-300 rounded-full"></span>
+                                  {item.engineerName}
+                                </p>
+                                <h5 className="text-sm font-bold text-gray-800 mt-1 whitespace-pre-line">{item.entry.workDetails || 'Maintenance Service'}</h5>
+                              </div>
+                              <div className="flex flex-col items-end gap-1 shrink-0 ml-4">
+                                <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border ${
+                                  item.entry.initialStatus?.toUpperCase() === 'FIXED' || item.entry.initialStatus?.toUpperCase() === 'COMPLETED' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                  item.entry.initialStatus?.toUpperCase() === 'PROCESS' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                                  'bg-gray-50 text-gray-600 border-gray-100'
+                                }`}>
+                                  {item.entry.initialStatus || 'Daily Service'}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {item.entry.sparesReplaced && (
+                              <div className="bg-white p-3 rounded-lg border border-orange-100">
+                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Spares Replaced</p>
+                                <p className="text-xs font-semibold text-gray-600 whitespace-pre-line">
+                                  {item.entry.sparesReplaced}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+                  })}
                 </div>
               )}
             </div>

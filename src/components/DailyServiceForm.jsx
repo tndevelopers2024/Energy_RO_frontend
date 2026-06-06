@@ -274,21 +274,23 @@ const DailyServiceForm = () => {
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="text-black uppercase tracking-widest text-[10px]">
-                                        <th className="p-4 w-[12%]">Compl. No</th>
-                                        <th className="p-4 w-[10%]">Customer Details</th>
-                                        <th className="p-4 w-[12%]">Product</th>
-                                        <th className="p-4 w-[10%] text-center">VT</th>
-                                        <th className="p-4 w-[10%]">Status</th>
-                                        <th className="p-4 w-[10%] text-center">Time</th>
-                                        <th className="p-4 text-center w-[10%]">Charges</th>
-                                        <th className="p-4 w-[7%] text-center">Actions</th>
+                                    <tr className="text-black uppercase tracking-widest text-[10px] whitespace-nowrap">
+                                        <th className="p-4 min-w-[120px]">Compl. No</th>
+                                        <th className="p-4 min-w-[120px]">Compl. Date</th>
+                                        <th className="p-4 min-w-[120px]">Init. Status</th>
+                                        <th className="p-4 min-w-[200px]">Customer Details</th>
+                                        <th className="p-4 min-w-[120px]">Product</th>
+                                        <th className="p-4 min-w-[80px] text-center">VT</th>
+                                        <th className="p-4 min-w-[100px]">Status</th>
+                                        <th className="p-4 min-w-[120px] text-center">Time</th>
+                                        <th className="p-4 text-center min-w-[120px]">Charges</th>
+                                        <th className="p-4 min-w-[100px] text-center sticky right-0 bg-white z-10 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] border-l border-gray-100">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {entries.length === 0 ? (
                                         <tr>
-                                            <td colSpan="9" className="p-12 text-center">
+                                            <td colSpan="10" className="p-12 text-center">
                                                 <div className="flex flex-col items-center gap-3 opacity-30">
                                                     <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1">
                                                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline>
@@ -300,9 +302,15 @@ const DailyServiceForm = () => {
                                     ) : (
                                         entries.map((entry, index) => (
                                             <tr key={index} className="hover:bg-blue-50/30 transition-colors group">
-                                                <td className="p-4">
+                                                <td className="p-4 whitespace-nowrap">
                                                     <p className="text-xs font-black text-[#0c1f3d]">{entry.complaintNo}</p>
                                                     <p className="text-[10px] text-gray-400 font-bold uppercase truncate max-w-[100px]">{getFullVisitType(entry.visitType)}</p>
+                                                </td>
+                                                <td className="p-4 whitespace-nowrap">
+                                                    <p className="text-xs font-bold text-gray-700">{entry.dateOfComplain ? new Date(entry.dateOfComplain).toLocaleDateString('en-GB') : '-'}</p>
+                                                </td>
+                                                <td className="p-4 whitespace-nowrap">
+                                                    <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase ${entry.initialStatus === 'Completed' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>{entry.initialStatus || '-'}</span>
                                                 </td>
                                                 <td className="p-4">
                                                     <p className="text-xs font-bold text-gray-800">{entry.customerName || entry.customerDetails}</p>
@@ -330,7 +338,7 @@ const DailyServiceForm = () => {
                                                         <div className="flex justify-between"><span>Contracts:</span> <span className="text-green-600">₹{entry.charges.contracts}</span></div>
                                                     </div>
                                                 </td>
-                                                <td className="p-4">
+                                                <td className="p-4 sticky right-0 bg-white group-hover:bg-blue-50/50 z-10 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] border-l border-gray-100 transition-colors">
                                                     <div className="flex items-center justify-center gap-2 group-hover:opacity-100 transition-opacity">
                                                         <button onClick={() => openEditModal(index)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer">
                                                             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3">

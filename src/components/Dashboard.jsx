@@ -157,15 +157,22 @@ const Dashboard = () => {
     const now = new Date();
 
     const totalInstallation = customers.filter(c => c.type === 'Installation').length;
-    const acmcCount = customers.filter(c => c.isACMC).length;
+    
+    const acmcCount = customers.filter(c => {
+      if (!c.isACMC) return false;
+      const isCompleted = c.acmcServicesCompleted?.length === 3 && c.acmcServicesCompleted.every(status => status === true);
+      const isExpired = c.acmcExpiryDate && new Date(c.acmcExpiryDate) < now;
+      return !isCompleted && !isExpired;
+    }).length;
 
     // In Warranty = Installation type and Date under 1 year old
     const warrantyCount = customers.filter(c => {
-      if (c.type !== 'Installation' || !c.dateOfInstallationOrService) return false;
+      if (c.type !== 'Installation' || !c.dateOfInstallationOrService || c.isACMC) return false;
+      const isCompleted = c.servicesCompleted?.length === 3 && c.servicesCompleted.every(status => status === true);
       const installDate = new Date(c.dateOfInstallationOrService);
       const oneYearAgo = new Date();
       oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-      return installDate > oneYearAgo;
+      return installDate > oneYearAgo && !isCompleted;
     }).length;
 
     // Helper to count services due in current month
@@ -214,7 +221,26 @@ const Dashboard = () => {
     const dueCurrentMonth = countDueCurrentMonth();
     const dueNextMonth = countDueNextMonth();
 
-    return { totalInstallation, warrantyCount, acmcCount, dueCurrentMonth, dueNextMonth };
+    // Warranty Expired = Warranty customers whose 1 year is up, or all services done
+    const warrantyExpiredCount = customers.filter(c => {
+      if (c.isACMC) return false;
+      if (!c.dateOfInstallationOrService) return false;
+      const isCompleted = c.servicesCompleted?.length === 3 && c.servicesCompleted.every(status => status === true);
+      const installDate = new Date(c.dateOfInstallationOrService);
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      return installDate <= oneYearAgo || isCompleted;
+    }).length;
+
+    // ACMC Expired = ACMC customers whose ACMC is up, or all services done
+    const acmcExpiredCount = customers.filter(c => {
+      if (!c.isACMC) return false;
+      const isCompleted = c.acmcServicesCompleted?.length === 3 && c.acmcServicesCompleted.every(status => status === true);
+      const isExpired = c.acmcExpiryDate && new Date(c.acmcExpiryDate) < now;
+      return isCompleted || isExpired;
+    }).length;
+
+    return { totalInstallation, warrantyCount, acmcCount, dueCurrentMonth, dueNextMonth, warrantyExpiredCount, acmcExpiredCount };
   };
 
   const kpis = calculateKPIs();
@@ -328,8 +354,24 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* Row 2: Service Forecaster */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Row 2: Service Forecaster & Expirations */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <StatCard
+          title="Warranty Expired"
+          value={kpis.warrantyExpiredCount}
+          sub="Requires renewal"
+          themeColor="#f59e0b"
+          icon={<svg viewBox="0 0 24 24" width="20" height="20" stroke="#f59e0b" strokeWidth="3" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>}
+          onClick={() => handleCardClick('expired')}
+        />
+        <StatCard
+          title="ACMC Expired"
+          value={kpis.acmcExpiredCount}
+          sub="Requires renewal"
+          themeColor="#f43f5e"
+          icon={<svg viewBox="0 0 24 24" width="20" height="20" stroke="#f43f5e" strokeWidth="3" fill="none"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>}
+          onClick={() => handleCardClick('acmc_expired')}
+        />
         <StatCard
           title="Service Due Current Month"
           value={kpis.dueCurrentMonth}

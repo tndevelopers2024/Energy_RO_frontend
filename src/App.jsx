@@ -6,7 +6,6 @@ import Dashboard from './components/Dashboard';
 import Sidebar from './components/Sidebar';
 import Login from './components/Login';
 import DailyServiceForm from './components/DailyServiceForm';
-import DailyComplaints from './components/DailyComplaints';
 
 
 // Protected Route Component
@@ -23,7 +22,7 @@ function App() {
   const isDatabase = location.pathname === '/database';
   const isDashboard = location.pathname === '/dashboard';
   const isDailyService = location.pathname === '/daily-service';
-  const isDailyComplaints = location.pathname === '/daily-complaints';
+
   const isLogin = location.pathname === '/login';
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')));
 
@@ -54,10 +53,10 @@ function App() {
           <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 py-5 flex items-center justify-between z-10 transition-all duration-300">
             <div>
               <h2 className="text-xl font-extrabold text-gray-800 tracking-tight">
-                {isDashboard ? 'Performance Analytics' : isDatabase ? 'Database Records' : isDailyService ? 'Daily Service Report' : isDailyComplaints ? 'Customer Complaints' : 'Customer Registration'}
+                {isDashboard ? 'Performance Analytics' : isDatabase ? 'Database Records' : isDailyService ? 'Daily Service Report' : 'Customer Registration'}
               </h2>
               <p className="text-[11px] text-gray-500 font-bold uppercase tracking-wider mt-0.5 opacity-60">
-                {isDashboard ? 'Business intelligence overview' : isDatabase ? 'Complete service history log' : isDailyService ? 'Engineer daily activity log' : isDailyComplaints ? 'Customer issue log and status tracking' : 'Step-by-step onboarding'}
+                {isDashboard ? 'Business intelligence overview' : isDatabase ? 'Complete service history log' : isDailyService ? 'Engineer daily activity log' : 'Step-by-step onboarding'}
               </p>
             </div>
             {/* <div className="flex items-center gap-4">
@@ -106,16 +105,6 @@ function App() {
                 <ProtectedRoute>
                   <div className="transition-all duration-500 transform opacity-100 translate-y-0">
                     <DailyServiceForm />
-                  </div>
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/daily-complaints" 
-              element={
-                <ProtectedRoute>
-                  <div className="transition-all duration-500 transform opacity-100 translate-y-0">
-                    <DailyComplaints />
                   </div>
                 </ProtectedRoute>
               } 

@@ -45,6 +45,7 @@ const CustomerForm = () => {
   const [formData, setFormData] = useState({
     userName: '',
     mobileNumber: '',
+    alternateMobileNumber: '',
     email: '',
     doorNo: '',
     street: '',
@@ -112,6 +113,7 @@ const CustomerForm = () => {
       ...prev,
       userName: customer.userName || '',
       mobileNumber: customer.mobileNumber || '',
+      alternateMobileNumber: customer.alternateMobileNumber || '',
       email: customer.email || '',
       doorNo: customer.doorNo || '',
       street: customer.street || '',
@@ -131,6 +133,7 @@ const CustomerForm = () => {
     setFormData({
       userName: '',
       mobileNumber: '',
+      alternateMobileNumber: '',
       email: '',
       doorNo: '',
       street: '',
@@ -153,7 +156,7 @@ const CustomerForm = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'mobileNumber') {
+    if (name === 'mobileNumber' || name === 'alternateMobileNumber') {
       const onlyNums = value.replace(/\D/g, '').slice(0, 10);
       setFormData(prev => ({ ...prev, [name]: onlyNums }));
       return;
@@ -285,6 +288,15 @@ const CustomerForm = () => {
               required
             />
             {showSuggestions && formData.mobileNumber.length >= 3 && renderSuggestions(suggestions, selectExistingCustomer)}
+          </div>
+          <div className="relative">
+            <InputField
+              label="Alternate Mobile No"
+              name="alternateMobileNumber"
+              value={formData.alternateMobileNumber}
+              onChange={handleChange}
+              maxLength={10}
+            />
           </div>
           <InputField
             label="Email Address"

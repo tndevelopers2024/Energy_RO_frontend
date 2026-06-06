@@ -26,6 +26,8 @@ export const RESULT_OPTIONS = [
 const ServiceEntryModal = ({ isOpen, onClose, onSave, entry, isEdit }) => {
     const [formData, setFormData] = useState({
         complaintNo: '',
+        dateOfComplain: '',
+        initialStatus: 'Pending',
         customerName: '',
         address: '',
         phone: '',
@@ -51,42 +53,39 @@ const ServiceEntryModal = ({ isOpen, onClose, onSave, entry, isEdit }) => {
     const [isSearching, setIsSearching] = useState(false);
     const [customerROs, setCustomerROs] = useState([]); // Other ROs for this phone
 
-    // Search for customers when customerName or phone changes
-    useEffect(() => {
-        const source = axios.CancelToken.source();
-        
-        const searchCustomer = async () => {
-            const query = formData.customerName || formData.phone;
-            if (query.length < 3 || isEdit) {
-                setSuggestions([]);
-                setShowSuggestions(false);
-                return;
-            }
+    const [allCustomers, setAllCustomers] = useState([]);
 
-            setIsSearching(true);
+    // Fetch all customers when modal opens
+    useEffect(() => {
+        if (!isOpen) return;
+        const fetchCustomers = async () => {
             try {
-                const response = await axios.get(`${API_BASE_URL}/customers/search?q=${query}`, {
-                    cancelToken: source.token
-                });
+                const response = await axios.get(`${API_BASE_URL}/customers`);
                 if (response.data.success) {
-                    setSuggestions(response.data.data);
-                    setShowSuggestions(response.data.data.length > 0);
+                    setAllCustomers(response.data.data);
                 }
             } catch (error) {
-                if (!axios.isCancel(error)) {
-                    console.error('Search error:', error);
-                }
-            } finally {
-                setIsSearching(false);
+                console.error('Error fetching customers:', error);
             }
         };
+        fetchCustomers();
+    }, [isOpen]);
 
-        const timeoutId = setTimeout(searchCustomer, 300);
-        return () => {
-            clearTimeout(timeoutId);
-            source.cancel();
-        };
-    }, [formData.customerName, formData.phone, isEdit]);
+    // Local filter for suggestions
+    useEffect(() => {
+        const term = (formData.customerName || '').toLowerCase().trim();
+        if (!term) {
+            setSuggestions(allCustomers.slice(0, 50)); // Show top 50 by default
+            return;
+        }
+        
+        const filtered = allCustomers.filter(c => 
+            (c.userName && c.userName.toLowerCase().includes(term)) ||
+            (c.mobileNumber && c.mobileNumber.includes(term)) ||
+            (c.cardNumber && c.cardNumber.toLowerCase().includes(term))
+        );
+        setSuggestions(filtered.slice(0, 50)); // Limit to 50 for performance
+    }, [formData.customerName, allCustomers]);
 
     const selectCustomer = async (customer) => {
         setFormData({
@@ -117,6 +116,8 @@ const ServiceEntryModal = ({ isOpen, onClose, onSave, entry, isEdit }) => {
         } else {
             setFormData({
                 complaintNo: '',
+                dateOfComplain: '',
+                initialStatus: 'Pending',
                 customerName: '',
                 address: '',
                 phone: '',
@@ -191,6 +192,32 @@ const ServiceEntryModal = ({ isOpen, onClose, onSave, entry, isEdit }) => {
                             />
                         </div>
 
+                        {/* Date of Complain */}
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date of Complain</label>
+                            <DateRangePicker
+                                isSingle={true}
+                                startDate={formData.dateOfComplain}
+                                onRangeSelect={(start) =>
+                                    handleChange('dateOfComplain', start ? start.toISOString().split('T')[0] : '')
+                                }
+                            />
+                        </div>
+
+                        {/* Initial Status */}
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Initial Status</label>
+                            <select
+                                value={formData.initialStatus}
+                                onChange={(e) => handleChange('initialStatus', e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl border border-gray-100 bg-gray-50 focus:bg-white focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all outline-none font-bold text-gray-800 text-sm cursor-pointer"
+                            >
+                                <option value="Pending">Pending (Not Started)</option>
+                                <option value="Process">In Process</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </div>
+
                         {/* Visit Type */}
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Visit Type (VT)</label>
@@ -220,22 +247,21 @@ const ServiceEntryModal = ({ isOpen, onClose, onSave, entry, isEdit }) => {
                                     type="text"
                                     required
                                     value={formData.customerName}
-                                    onChange={(e) => handleChange('customerName', e.target.value)}
+                                    onChange={(e) => {
+                                        handleChange('customerName', e.target.value);
+                                        setShowSuggestions(true);
+                                    }}
                                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                                    onFocus={() => formData.customerName.length >= 2 && suggestions.length > 0 && setShowSuggestions(true)}
+                                    onFocus={() => setShowSuggestions(true)}
                                     className="w-full px-4 py-3 bg-white border border-gray-100 rounded-lg focus:outline-none focus:ring-4 focus:ring-[#D15616]/10 focus:border-[#D15616] transition-all text-sm font-semibold text-gray-700 placeholder:text-gray-300 placeholder:font-medium"
-                                    placeholder="Enter customer name"
+                                    placeholder="Search Customer by Name, Mobile, Card..."
                                 />
-                                {isSearching && (
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                        <div className="w-4 h-4 border-2 border-[#D15616] border-t-transparent rounded-full animate-spin"></div>
-                                    </div>
-                                )}
                             </div>
 
                             {/* Suggestions Dropdown */}
-                            {showSuggestions && (
+                            {showSuggestions && suggestions.length > 0 && (
                                 <div className="absolute z-[1001] left-0 right-0 top-[calc(100%+4px)] bg-white border border-gray-100 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+                                    <p className="px-4 py-1.5 text-[9px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 mb-1 sticky top-0 bg-white">Select Customer</p>
                                     {suggestions.map((customer) => (
                                         <button
                                             key={customer._id}
@@ -248,6 +274,7 @@ const ServiceEntryModal = ({ isOpen, onClose, onSave, entry, isEdit }) => {
                                                 <span className="text-[#D15616]">📦 {customer.productNameAndModel || 'No Product'}</span>
                                                 <span>📞 {customer.mobileNumber}</span>
                                                 <span className="truncate max-w-[150px]">📍 {customer.address}</span>
+                                                {customer.cardNumber && <span className="ml-auto text-[#D15616] bg-[#D15616]/5 px-1.5 py-0.5 rounded uppercase">Card: {customer.cardNumber}</span>}
                                             </div>
                                         </button>
                                     ))}

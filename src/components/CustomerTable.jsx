@@ -71,26 +71,41 @@ const CustomerTable = () => {
     if (activeTab !== 'all') {
       const now = new Date();
       if (activeTab === 'acmc') {
-        filtered = filtered.filter(c => c.isACMC);
+        filtered = filtered.filter(c => {
+          if (!c.isACMC) return false;
+          const isCompleted = c.acmcServicesCompleted?.length === 3 && c.acmcServicesCompleted.every(status => status === true);
+          const isExpired = c.acmcExpiryDate && new Date(c.acmcExpiryDate) < new Date();
+          return !isCompleted && !isExpired;
+        });
       }
       else if (activeTab === 'warranty') {
         const oneYearAgo = new Date();
         oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-        filtered = filtered.filter(c =>
-          !c.isACMC &&
-          c.type === 'Installation' &&
-          c.dateOfInstallationOrService &&
-          new Date(c.dateOfInstallationOrService) > oneYearAgo
-        );
+        filtered = filtered.filter(c => {
+          if (c.isACMC || c.type !== 'Installation' || !c.dateOfInstallationOrService) return false;
+          const isCompleted = c.servicesCompleted?.length === 3 && c.servicesCompleted.every(status => status === true);
+          return new Date(c.dateOfInstallationOrService) > oneYearAgo && !isCompleted;
+        });
       }
       else if (activeTab === 'expired') {
         const oneYearAgo = new Date();
         oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-        filtered = filtered.filter(c =>
-          !c.isACMC &&
-          c.dateOfInstallationOrService &&
-          new Date(c.dateOfInstallationOrService) <= oneYearAgo
-        );
+        filtered = filtered.filter(c => {
+          if (c.isACMC) return false;
+          
+          if (!c.dateOfInstallationOrService) return false;
+          const isCompleted = c.servicesCompleted?.length === 3 && c.servicesCompleted.every(status => status === true);
+          const isExpired = new Date(c.dateOfInstallationOrService) <= oneYearAgo;
+          return isCompleted || isExpired;
+        });
+      }
+      else if (activeTab === 'acmc_expired') {
+        filtered = filtered.filter(c => {
+          if (!c.isACMC) return false;
+          const isCompleted = c.acmcServicesCompleted?.length === 3 && c.acmcServicesCompleted.every(status => status === true);
+          const isExpired = c.acmcExpiryDate && new Date(c.acmcExpiryDate) < new Date();
+          return isCompleted || isExpired;
+        });
       }
       else if (activeTab === 'currentMonth') {
         const currentYear = now.getFullYear();
@@ -358,7 +373,7 @@ const CustomerTable = () => {
 
       const nextServiceLabel = !isAllDone
         ? (isACMC ? `ACMC Service ${nextIdx + 1}` : `Service ${nextIdx + 1}`)
-        : 'Warranty Expired';
+        : (isACMC ? 'ACMC Expired' : 'Warranty Expired');
 
       const nextServiceDate = serviceDate
         ? serviceDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
@@ -447,6 +462,7 @@ const CustomerTable = () => {
             { id: 'warranty', label: 'In Warranty' },
             { id: 'acmc', label: 'ACMC' },
             { id: 'expired', label: 'Warranty Expired' },
+            { id: 'acmc_expired', label: 'ACMC Expired' },
             { id: 'currentMonth', label: 'Current Month' },
             { id: 'nextMonth', label: 'Next Month' }
           ].map(tab => (
@@ -606,6 +622,11 @@ const CustomerRow = ({ group, openServiceModal, setDetailsModal, setEditModal, h
   const serviceDates = isACMC ? calculateAcmcDates(baseDate) : calculateServiceDates(baseDate);
   const serviceDate = !isAllDone ? serviceDates[nextIdx] : null;
   const isPast = serviceDate && serviceDate < new Date();
+  
+  const isAcmcExpiredOrCompleted = isACMC && (
+    (cust.acmcExpiryDate && new Date() > new Date(cust.acmcExpiryDate)) ||
+    isAllDone
+  );
 
   return (
     <tr className="hover:bg-[#D15616]/5 transition-all duration-300 group">
@@ -654,9 +675,14 @@ const CustomerRow = ({ group, openServiceModal, setDetailsModal, setEditModal, h
               {cust.productNameAndModel || 'Generic RO System'}
             </div>
           )}
-          {isACMC && (
-            <div className="w-fit bg-emerald-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest shadow-sm">
+          {isACMC && !isAcmcExpiredOrCompleted && (
+            <div className="w-fit bg-emerald-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest shadow-sm mt-1">
               ACMC ACTIVE
+            </div>
+          )}
+          {isACMC && isAcmcExpiredOrCompleted && (
+            <div className="w-fit bg-red-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest shadow-sm mt-1">
+              ACMC EXPIRED
             </div>
           )}
         </div>
@@ -697,7 +723,9 @@ const CustomerRow = ({ group, openServiceModal, setDetailsModal, setEditModal, h
           ) : (
             <div className="flex items-center gap-1.5 px-3 py-1 bg-red-50 border border-red-100 rounded-full">
               <span className="h-1 w-1 rounded-full bg-red-500"></span>
-              <span className="text-[9px] font-black text-red-600 uppercase tracking-widest">Warranty expired</span>
+              <span className="text-[9px] font-black text-red-600 uppercase tracking-widest">
+                {isACMC ? 'ACMC EXPIRED' : 'WARRANTY EXPIRED'}
+              </span>
             </div>
           )}
         </div>
