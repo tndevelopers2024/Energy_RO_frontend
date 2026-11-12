@@ -525,7 +525,30 @@ const CustomerTable = () => {
           <h3 className="text-2xl font-black text-gray-900 tracking-tight">Recent Records</h3>
           <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-1 opacity-70">Management Console</p>
         </div>
-        <div className="flex items-center gap-3 mt-4 md:mt-0">
+        <div className="flex flex-wrap items-center gap-3 mt-4 md:mt-0">
+          {/* Sort By Dropdown */}
+          <div className="relative">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              aria-label="Sort records by"
+              className="bg-white border border-gray-200 rounded-md pl-3 pr-8 py-2 text-[11px] font-bold text-gray-700 focus:outline-none focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all appearance-none cursor-pointer shadow-sm"
+            >
+              <option value="default">Sort: Default</option>
+              <option value="date_desc">Date: Newest First</option>
+              <option value="date_asc">Date: Oldest First</option>
+              <option value="name_asc">Name: A → Z</option>
+              <option value="name_desc">Name: Z → A</option>
+              <option value="due_asc">Next Service: Soonest</option>
+              <option value="due_desc">Next Service: Latest</option>
+            </select>
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+              <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="2.5" fill="none">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </div>
+          </div>
+
           <button
             onClick={exportToCSV}
             className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-md text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all duration-300 shadow-sm"
@@ -601,29 +624,6 @@ const CustomerTable = () => {
               setEndDate(toLocalDateStr(end));
             }}
           />
-
-          {/* Sort By Dropdown */}
-          <div className="relative w-full md:w-48">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              aria-label="Sort records by"
-              className="w-full bg-white border border-gray-100 rounded-lg pl-4 pr-9 py-3 text-xs font-bold text-gray-700 focus:outline-none focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all appearance-none cursor-pointer shadow-sm"
-            >
-              <option value="default">Sort: Default</option>
-              <option value="date_desc">Date: Newest First</option>
-              <option value="date_asc">Date: Oldest First</option>
-              <option value="name_asc">Name: A → Z</option>
-              <option value="name_desc">Name: Z → A</option>
-              <option value="due_asc">Next Service: Soonest</option>
-              <option value="due_desc">Next Service: Latest</option>
-            </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none">
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </div>
-          </div>
         </div>
       </div>
 
