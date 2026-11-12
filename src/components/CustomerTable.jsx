@@ -19,6 +19,7 @@ const CustomerTable = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [sortBy, setSortBy] = useState('default');
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -159,18 +160,55 @@ const CustomerTable = () => {
       );
     }
 
-    // 3. Date Range Filtering (Installation/Transaction Date)
+    // 3. Date Range Filtering (context-aware per active tab)
+    const parseLocalDate = (dateStr) => {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    };
+
+    const getFilterDateForCustomer = (cust) => {
+      if (activeTab === 'expired') {
+        if (!cust.dateOfInstallationOrService) return null;
+        const d = new Date(cust.dateOfInstallationOrService);
+        d.setFullYear(d.getFullYear() + 1);
+        return d;
+      }
+      if (activeTab === 'acmc_expired') {
+        if (cust.acmcExpiryDate) return new Date(cust.acmcExpiryDate);
+        if (cust.acmcStartDate) {
+          const d = new Date(cust.acmcStartDate);
+          d.setFullYear(d.getFullYear() + 1);
+          return d;
+        }
+        return null;
+      }
+      if (activeTab === 'currentMonth' || activeTab === 'nextMonth') {
+        const isACMC = cust.isACMC;
+        const services = isACMC ? cust.acmcServicesCompleted : cust.servicesCompleted;
+        const nextIdx = services?.findIndex(status => !status);
+        if (nextIdx === undefined || nextIdx === -1) return null;
+        const baseDate = isACMC ? cust.acmcStartDate : cust.dateOfInstallationOrService;
+        const serviceDates = isACMC ? calculateAcmcDates(baseDate) : calculateServiceDates(baseDate);
+        return serviceDates[nextIdx] || null;
+      }
+      return cust.dateOfInstallationOrService ? new Date(cust.dateOfInstallationOrService) : null;
+    };
+
     if (startDate) {
-      filtered = filtered.filter(cust =>
-        cust.dateOfInstallationOrService && new Date(cust.dateOfInstallationOrService) >= new Date(startDate)
-      );
+      const start = parseLocalDate(startDate);
+      start.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(cust => {
+        const targetDate = getFilterDateForCustomer(cust);
+        return targetDate && !isNaN(targetDate.getTime()) && targetDate >= start;
+      });
     }
     if (endDate) {
-      const end = new Date(endDate);
+      const end = parseLocalDate(endDate);
       end.setHours(23, 59, 59, 999);
-      filtered = filtered.filter(cust =>
-        cust.dateOfInstallationOrService && new Date(cust.dateOfInstallationOrService) <= end
-      );
+      filtered = filtered.filter(cust => {
+        const targetDate = getFilterDateForCustomer(cust);
+        return targetDate && !isNaN(targetDate.getTime()) && targetDate <= end;
+      });
     }
 
     return filtered;
@@ -198,18 +236,68 @@ const CustomerTable = () => {
     return Array.from(groups.values());
   }, [filteredCustomers]);
 
+  const getNextServiceTimestamp = (cust) => {
+    if (!cust) return null;
+    if (cust.customerType === 'Outside Customer' && !cust.isACMC) return null;
+    const isACMC = cust.isACMC;
+    const services = isACMC ? cust.acmcServicesCompleted : cust.servicesCompleted;
+    const nextIdx = services?.findIndex(status => !status);
+    if (nextIdx === undefined || nextIdx === -1) return null;
+    const baseDate = isACMC ? cust.acmcStartDate : cust.dateOfInstallationOrService;
+    const serviceDates = isACMC ? calculateAcmcDates(baseDate) : calculateServiceDates(baseDate);
+    const serviceDate = serviceDates[nextIdx];
+    return serviceDate ? serviceDate.getTime() : null;
+  };
+
+  const sortedCustomers = useMemo(() => {
+    if (sortBy === 'default') return groupedCustomers;
+    const list = [...groupedCustomers];
+    const compareNullableNumbers = (aVal, bVal, asc = true) => {
+      if (aVal === null && bVal === null) return 0;
+      if (aVal === null) return 1;
+      if (bVal === null) return -1;
+      return asc ? aVal - bVal : bVal - aVal;
+    };
+
+    list.sort((a, b) => {
+      const recA = a.records[0];
+      const recB = b.records[0];
+      switch (sortBy) {
+        case 'name_asc':
+          return (a.userName || '').localeCompare(b.userName || '', undefined, { sensitivity: 'base' });
+        case 'name_desc':
+          return (b.userName || '').localeCompare(a.userName || '', undefined, { sensitivity: 'base' });
+        case 'date_asc':
+        case 'date_desc': {
+          const tA = recA?.dateOfInstallationOrService ? new Date(recA.dateOfInstallationOrService).getTime() : null;
+          const tB = recB?.dateOfInstallationOrService ? new Date(recB.dateOfInstallationOrService).getTime() : null;
+          return compareNullableNumbers(tA, tB, sortBy === 'date_asc');
+        }
+        case 'due_asc':
+        case 'due_desc': {
+          const dA = getNextServiceTimestamp(recA);
+          const dB = getNextServiceTimestamp(recB);
+          return compareNullableNumbers(dA, dB, sortBy === 'due_asc');
+        }
+        default:
+          return 0;
+      }
+    });
+    return list;
+  }, [groupedCustomers, sortBy]);
+
   // Pagination Logic
-  const totalItems = groupedCustomers.length;
+  const totalItems = sortedCustomers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, startDate, endDate, activeTab]);
+  }, [searchTerm, startDate, endDate, activeTab, sortBy]);
 
   const pagedCustomers = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
-    return groupedCustomers.slice(start, start + itemsPerPage);
-  }, [groupedCustomers, currentPage, itemsPerPage]);
+    return sortedCustomers.slice(start, start + itemsPerPage);
+  }, [sortedCustomers, currentPage, itemsPerPage]);
 
   const fetchCustomers = async () => {
     try {
@@ -336,6 +424,11 @@ const CustomerTable = () => {
     setStartDate('');
     setEndDate('');
     setActiveTab('all');
+    setSortBy('default');
+  };
+
+  const toggleColumnSort = (ascKey, descKey) => {
+    setSortBy(prev => (prev === ascKey ? descKey : prev === descKey ? 'default' : ascKey));
   };
 
   const exportToCSV = () => {
@@ -443,7 +536,7 @@ const CustomerTable = () => {
           <div className="text-xl font-black text-[#D15616] bg-[#D15616]/10 px-4 py-2 rounded-md border border-[#D15616]/5 uppercase tracking-tighter">
             {filteredCustomers.length} <span className='!text-[16px] font-bold'>Users</span>
           </div>
-          {(searchTerm || startDate || endDate || activeTab !== 'all') && (
+          {(searchTerm || startDate || endDate || activeTab !== 'all' || sortBy !== 'default') && (
             <button
               onClick={clearFilters}
               className="cursor-pointer text-[10px] font-black text-gray-400 hover:text-[#D15616] uppercase tracking-widest transition-colors flex items-center gap-1.5 px-3 py-2 hover:bg-[#D15616]/5 rounded-md"
@@ -500,10 +593,37 @@ const CustomerTable = () => {
             startDate={startDate}
             endDate={endDate}
             onRangeSelect={(start, end) => {
-              setStartDate(start ? start.toISOString().split('T')[0] : '');
-              setEndDate(end ? end.toISOString().split('T')[0] : '');
+              const toLocalDateStr = (d) => {
+                if (!d) return '';
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              };
+              setStartDate(toLocalDateStr(start));
+              setEndDate(toLocalDateStr(end));
             }}
           />
+
+          {/* Sort By Dropdown */}
+          <div className="relative w-full md:w-48">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              aria-label="Sort records by"
+              className="w-full bg-white border border-gray-100 rounded-lg pl-4 pr-9 py-3 text-xs font-bold text-gray-700 focus:outline-none focus:border-[#D15616] focus:ring-4 focus:ring-[#D15616]/5 transition-all appearance-none cursor-pointer shadow-sm"
+            >
+              <option value="default">Sort: Default</option>
+              <option value="date_desc">Date: Newest First</option>
+              <option value="date_asc">Date: Oldest First</option>
+              <option value="name_asc">Name: A → Z</option>
+              <option value="name_desc">Name: Z → A</option>
+              <option value="due_asc">Next Service: Soonest</option>
+              <option value="due_desc">Next Service: Latest</option>
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -511,11 +631,41 @@ const CustomerTable = () => {
         <table className="w-full text-left text-sm">
           <thead className="bg-gray-50/50 text-gray-400 text-[10px] uppercase tracking-[0.2em] font-black">
             <tr>
-              <th className="px-8 py-5 min-w-[180px]">Customer Name</th>
+              <th
+                onClick={() => toggleColumnSort('name_asc', 'name_desc')}
+                className="px-8 py-5 min-w-[180px] cursor-pointer select-none hover:text-[#D15616] transition-colors"
+                title="Click to sort by Customer Name"
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  Customer Name
+                  {sortBy === 'name_asc' && <span className="text-[#D15616]">↑</span>}
+                  {sortBy === 'name_desc' && <span className="text-[#D15616]">↓</span>}
+                </span>
+              </th>
               <th className="px-8 py-5 min-w-[150px]">Mobile Number</th>
               <th className="px-8 py-5 min-w-[180px]">Product & Model</th>
-              <th className="px-8 py-5 min-w-[150px]">Date</th>
-              <th className="px-8 py-5 text-center min-w-[200px]">Next Service Due</th>
+              <th
+                onClick={() => toggleColumnSort('date_desc', 'date_asc')}
+                className="px-8 py-5 min-w-[150px] cursor-pointer select-none hover:text-[#D15616] transition-colors"
+                title="Click to sort by Date"
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  Installation Date
+                  {sortBy === 'date_asc' && <span className="text-[#D15616]">↑</span>}
+                  {sortBy === 'date_desc' && <span className="text-[#D15616]">↓</span>}
+                </span>
+              </th>
+              <th
+                onClick={() => toggleColumnSort('due_asc', 'due_desc')}
+                className="px-8 py-5 text-center min-w-[200px] cursor-pointer select-none hover:text-[#D15616] transition-colors"
+                title="Click to sort by Next Service Due"
+              >
+                <span className="inline-flex items-center justify-center gap-1.5">
+                  Next Service Due
+                  {sortBy === 'due_asc' && <span className="text-[#D15616]">↑</span>}
+                  {sortBy === 'due_desc' && <span className="text-[#D15616]">↓</span>}
+                </span>
+              </th>
               <th className="px-8 py-5 text-center">Actions</th>
             </tr>
           </thead>
@@ -631,6 +781,28 @@ const CustomerRow = ({ group, openServiceModal, setDetailsModal, setEditModal, h
     isAllDone
   );
 
+  const addOneYear = (dateVal) => {
+    const d = new Date(dateVal);
+    d.setFullYear(d.getFullYear() + 1);
+    return d;
+  };
+
+  const formatExpiryStatus = (dateObj) => {
+    if (!dateObj || isNaN(dateObj.getTime())) return null;
+    const formatted = dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    return dateObj < new Date() ? `Expired ${formatted}` : `Expires ${formatted}`;
+  };
+
+  const acmcExpiryDateObj = cust.acmcExpiryDate
+    ? new Date(cust.acmcExpiryDate)
+    : (isACMC && cust.acmcStartDate ? addOneYear(cust.acmcStartDate) : null);
+  const warrantyExpiryDateObj = !isACMC && cust.dateOfInstallationOrService
+    ? addOneYear(cust.dateOfInstallationOrService)
+    : null;
+
+  const acmcExpiryStatusText = formatExpiryStatus(acmcExpiryDateObj);
+  const expiryStatusText = isACMC ? acmcExpiryStatusText : formatExpiryStatus(warrantyExpiryDateObj);
+
   return (
     <tr className="hover:bg-[#D15616]/5 transition-all duration-300 group">
       {/* Customer Name */}
@@ -691,11 +863,7 @@ const CustomerRow = ({ group, openServiceModal, setDetailsModal, setEditModal, h
               ACMC ACTIVE
             </div>
           )}
-          {isACMC && isAcmcExpiredOrCompleted && (
-            <div className="w-fit bg-red-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest shadow-sm mt-1">
-              ACMC EXPIRED
-            </div>
-          )}
+          
         </div>
       </td>
 
@@ -737,16 +905,23 @@ const CustomerRow = ({ group, openServiceModal, setDetailsModal, setEditModal, h
                 <span>{isACMC ? `ACMC Service ${nextIdx + 1}` : `Service ${nextIdx + 1}`}</span>
                 <span className="bg-white/20 px-1.5 py-0.5 rounded text-[8px]">{isPast ? 'PENDING' : 'DUE'}</span>
               </button>
-              <span className={`text-[10px] font-black uppercase ${isPast ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
-                {serviceDate?.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+              <span className={`text-[10px] font-bold ${isPast ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
+                {serviceDate?.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-red-50 border border-red-100 rounded-full">
-              <span className="h-1 w-1 rounded-full bg-red-500"></span>
-              <span className="text-[9px] font-black text-red-600 uppercase tracking-widest">
-                {isACMC ? 'ACMC EXPIRED' : 'WARRANTY EXPIRED'}
-              </span>
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-red-50 border border-red-100 rounded-full">
+                <span className="h-1 w-1 rounded-full bg-red-500"></span>
+                <span className="text-[9px] font-black text-red-600 uppercase tracking-widest">
+                  {isACMC ? 'ACMC EXPIRED' : 'WARRANTY EXPIRED'}
+                </span>
+              </div>
+              {expiryStatusText && (
+                <span className="text-[10px] font-bold text-red-400">
+                  {expiryStatusText}
+                </span>
+              )}
             </div>
           )}
         </div>

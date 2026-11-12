@@ -1,19 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
+const parsePickerDate = (val) => {
+  if (!val) return null;
+  if (val instanceof Date) return val;
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+    const [y, m, d] = val.split('-').map(Number);
+    return new Date(y, m - 1, d, 12, 0, 0);
+  }
+  const parsed = new Date(val);
+  return isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const DateRangePicker = ({ startDate, endDate, onRangeSelect, isSingle = false, label, required = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [tempStart, setTempStart] = useState(startDate ? new Date(startDate) : null);
-  const [tempEnd, setTempEnd] = useState(endDate ? new Date(endDate) : null);
+  const [tempStart, setTempStart] = useState(parsePickerDate(startDate));
+  const [tempEnd, setTempEnd] = useState(parsePickerDate(endDate));
   const [dropdownStyle, setDropdownStyle] = useState({});
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
 
   // Sync with props
   useEffect(() => {
-    setTempStart(startDate ? new Date(startDate) : null);
-    setTempEnd(endDate ? new Date(endDate) : null);
+    setTempStart(parsePickerDate(startDate));
+    setTempEnd(parsePickerDate(endDate));
   }, [startDate, endDate]);
 
   // Click outside to close
