@@ -632,8 +632,8 @@ const CustomerTable = () => {
             { id: 'expired', label: 'Warranty Expired' },
             { id: 'acmc_expired', label: 'ACMC Expired' },
             { id: 'expiringThisMonth', label: 'This Month Expiring' },
-            { id: 'currentMonth', label: 'Current Month' },
-            { id: 'nextMonth', label: 'Next Month' }
+            { id: 'currentMonth', label: 'Current Month Service' },
+            { id: 'nextMonth', label: 'Next Month Service' }
           ].map(tab => (
             <button
               key={tab.id}
